@@ -12,6 +12,7 @@
         <module name="Presentacion" />
         <module name="Infraestructura" />
         <module name="RealizarPedidoCUE" />
+        <module name="AdministradorCajaCU" />
         <module name="Dominio" />
       </profile>
     </annotationProcessing>

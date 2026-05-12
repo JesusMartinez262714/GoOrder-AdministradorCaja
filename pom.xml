@@ -22,5 +22,6 @@
         <module>Persistencia</module>
         <module>Presentacion</module>
         <module>RealizarPedidoCUE</module>
+        <module>AdministradorCajaCU</module>
     </modules>
 </project>
