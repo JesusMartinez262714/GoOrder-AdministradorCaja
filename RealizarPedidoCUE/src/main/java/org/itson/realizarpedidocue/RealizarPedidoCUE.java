@@ -11,6 +11,7 @@ import Interfaces.IDescuentosBO;
 import Interfaces.IProductoBO;
 import Interfaces.IServicioBanco;
 import Interfaces.ISucursalesDAO;
+import Mappers.SucursalMapper;
 import goorderpersistencia.PersistenciaException;
 import goorderpersistencia.SucursalesDAO;
 import java.util.List;
@@ -68,16 +69,25 @@ public class RealizarPedidoCUE implements IRealizarPedidoCUE {
     }
 
     @Override
-    public List<SucursalDTO> consultarSucursales() throws NegocioException{
-       try{
-           List<SucursalDTO> listaSucursales = sucursalesDAO.consultarSucursales();
-           if(listaSucursales.isEmpty()){
-               throw new NegocioException("No hay sucursales disponibles en este momento");
-           }
-           return listaSucursales;
-       }catch (PersistenciaException e ){
-           throw new NegocioException("No se pudo establecer conexion con la base de datos");
-       }
+    public List<SucursalDTO> consultarSucursales() throws NegocioException {
+        try {
+            List<DTOs.SucursalDTO> listaPersistencia = sucursalesDAO.consultarSucursales();
+
+            if (listaPersistencia.isEmpty()) {
+                throw new NegocioException("No hay sucursales disponibles en este momento");
+            }
+
+            List<SucursalDTO> listaNegocio = new java.util.ArrayList<>();
+
+            for (DTOs.SucursalDTO sP : listaPersistencia) {
+                listaNegocio.add(SucursalMapper.toNegocio(sP));
+            }
+
+            return listaNegocio;
+
+        } catch (PersistenciaException e) {
+            throw new NegocioException("No se pudo establecer conexion con la base de datos");
+        }
     }
 
     @Override
