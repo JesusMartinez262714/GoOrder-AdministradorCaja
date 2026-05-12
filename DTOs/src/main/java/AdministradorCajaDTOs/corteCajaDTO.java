@@ -1,48 +1,111 @@
 package AdministradorCajaDTOs;
 
 import java.util.Date;
-import java.util.List;
+import java.util.List; // Importante
 
 public class corteCajaDTO {
-
-    private int idCorte;
-    private Date fechaHora;
-    private double totalEsperadoSistema;
-    private double totalRealDeclarado;
+    private int id;
+    private Date fecha;
+    private String cajero;
+    private double montoEsperado;
+    private double montoReal;
     private double diferencia;
-    private String estado;
-    private int idCajero;
-    private int idSupervisor;
+    private String notas;
     private List<desgloseDTO> listaDesglose;
+    private String rutaComprobante;
 
-
-    public corteCajaDTO() {
+    public corteCajaDTO(int id, Date fecha, String cajero, double montoEsperado, double montoReal, String notas, List<desgloseDTO> listaDesglose) {
+        this.id = id;
+        this.fecha = fecha;
+        this.cajero = cajero;
+        this.montoEsperado = montoEsperado;
+        this.montoReal = montoReal;
+        this.diferencia = montoReal - montoEsperado;
+        this.notas = notas;
+        this.listaDesglose = listaDesglose;
     }
 
-    public int getIdCorte() { return idCorte; }
-    public void setIdCorte(int idCorte) { this.idCorte = idCorte; }
+    public corteCajaDTO(int id, Date fecha, String cajero, double montoEsperado, double montoReal, double diferencia, String notas, List<desgloseDTO> listaDesglose, String rutaComprobante) {
+        this.id = id;
+        this.fecha = fecha;
+        this.cajero = cajero;
+        this.montoEsperado = montoEsperado;
+        this.montoReal = montoReal;
+        this.diferencia = diferencia;
+        this.notas = notas;
+        this.listaDesglose = listaDesglose;
+        this.rutaComprobante = rutaComprobante;
+    }
 
-    public Date getFechaHora() { return fechaHora; }
-    public void setFechaHora(Date fechaHora) { this.fechaHora = fechaHora; }
+    public int getId() {
+        return id;
+    }
 
-    public double getTotalEsperadoSistema() { return totalEsperadoSistema; }
-    public void setTotalEsperadoSistema(double totalEsperadoSistema) { this.totalEsperadoSistema = totalEsperadoSistema; }
+    public void setId(int id) {
+        this.id = id;
+    }
 
-    public double getTotalRealDeclarado() { return totalRealDeclarado; }
-    public void setTotalRealDeclarado(double totalRealDeclarado) { this.totalRealDeclarado = totalRealDeclarado; }
+    public Date getFecha() {
+        return fecha;
+    }
 
-    public double getDiferencia() { return diferencia; }
-    public void setDiferencia(double diferencia) { this.diferencia = diferencia; }
+    public void setFecha(Date fecha) {
+        this.fecha = fecha;
+    }
 
-    public String getEstado() { return estado; }
-    public void setEstado(String estado) { this.estado = estado; }
+    public String getCajero() {
+        return cajero;
+    }
 
-    public int getIdCajero() { return idCajero; }
-    public void setIdCajero(int idCajero) { this.idCajero = idCajero; }
+    public void setCajero(String cajero) {
+        this.cajero = cajero;
+    }
 
-    public int getIdSupervisor() { return idSupervisor; }
-    public void setIdSupervisor(int idSupervisor) { this.idSupervisor = idSupervisor; }
+    public double getMontoEsperado() {
+        return montoEsperado;
+    }
 
-    public List<desgloseDTO> getListaDesglose() { return listaDesglose; }
-    public void setListaDesglose(List<desgloseDTO> listaDesglose) { this.listaDesglose = listaDesglose; }
+    public void setMontoEsperado(double montoEsperado) {
+        this.montoEsperado = montoEsperado;
+    }
+
+    public double getMontoReal() {
+        return montoReal;
+    }
+
+    public void setMontoReal(double montoReal) {
+        this.montoReal = montoReal;
+    }
+
+    public double getDiferencia() {
+        return diferencia;
+    }
+
+    public void setDiferencia(double diferencia) {
+        this.diferencia = diferencia;
+    }
+
+    public String getNotas() {
+        return notas;
+    }
+
+    public void setNotas(String notas) {
+        this.notas = notas;
+    }
+
+    public List<desgloseDTO> getListaDesglose() {
+        return listaDesglose;
+    }
+
+    public void setListaDesglose(List<desgloseDTO> listaDesglose) {
+        this.listaDesglose = listaDesglose;
+    }
+
+    public String getRutaComprobante() {
+        return rutaComprobante;
+    }
+
+    public void setRutaComprobante(String rutaComprobante) {
+        this.rutaComprobante = rutaComprobante;
+    }
 }
