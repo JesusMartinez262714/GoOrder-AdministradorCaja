@@ -8,7 +8,7 @@ import Adapters.DescuentoEntityADTO;
 import Entidades.CodigoDescuento;
 import static Enumeradores.EstadoCodigoDesc.COBRADO;
 import static Enumeradores.EstadoCodigoDesc.NOCOBRADO;
-import GoOrderDTO.CodigoDescuentoDTO;
+import DTOs.CodigoDescuentoDTO;
 import Interfaces.IDescuentosDAO;
 import java.util.ArrayList;
 import java.util.List;

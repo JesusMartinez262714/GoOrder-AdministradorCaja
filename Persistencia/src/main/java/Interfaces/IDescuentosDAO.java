@@ -4,7 +4,7 @@
  */
 package Interfaces;
 
-import GoOrderDTO.CodigoDescuentoDTO;
+import DTOs.CodigoDescuentoDTO;
 import goorderpersistencia.PersistenciaException;
 
 /**

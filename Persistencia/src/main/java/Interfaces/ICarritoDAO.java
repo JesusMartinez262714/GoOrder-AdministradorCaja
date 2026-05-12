@@ -1,7 +1,7 @@
 
 package Interfaces;
 
-import GoOrderDTO.CarritoDTO;
+import DTOs.CarritoDTO;
 import goorderpersistencia.PersistenciaException;
 
 /**

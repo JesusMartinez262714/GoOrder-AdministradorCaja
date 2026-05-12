@@ -1,11 +1,10 @@
 
 package org.example;
 
-import Adapters.DtoEntityProduct;
 import Entitys.Producto;
-import GoOrderDTO.ProductoDTO;
 import Interfaces.IProductoBO;
 import Interfaces.IProductoDAO;
+import Mappers.ProductoMapper;
 import goorderpersistencia.PersistenciaException;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,13 +22,16 @@ public class ProductoBO implements IProductoBO {
     }
 
     @Override
-    public List<ProductoDTO> buscarProducto(String nombreProducto) throws NegocioException {
+    public List<GoOrderDTO.ProductoDTO> buscarProducto(String nombreProducto) throws NegocioException {
         try {
             List<Producto> listaEntity = productoDAO.buscarProducto(nombreProducto);
-            List<ProductoDTO> listaDTo = new ArrayList<>();
-            for (Producto p: listaEntity) {
-                listaDTo.add(DtoEntityProduct.toDTO(p));
+
+            List<GoOrderDTO.ProductoDTO> listaDTo = new ArrayList<>();
+
+            for (Producto p : listaEntity) {
+                listaDTo.add(ProductoMapper.toNegocio(p));
             }
+
             return listaDTo;
         } catch (PersistenciaException e) {
             throw new NegocioException("No fue posible realizar busqueda.");
@@ -37,15 +39,15 @@ public class ProductoBO implements IProductoBO {
     }
 
     @Override
-    public List<ProductoDTO> listarProductos() throws NegocioException {
+    public List<GoOrderDTO.ProductoDTO> listarProductos() throws NegocioException {
         try {
-            List<Producto> lista = productoDAO.listarProductos();
-            List<ProductoDTO> listaDTO = new ArrayList<>();
+            List<Entitys.Producto> listaEntidades = productoDAO.listarProductos();
 
-            for (Producto p: lista) {
-                listaDTO.add(DtoEntityProduct.toDTO(p));
+            List<GoOrderDTO.ProductoDTO> listaNegocio = new ArrayList<>();
+            for (Entitys.Producto p : listaEntidades) {
+                listaNegocio.add(ProductoMapper.toNegocio(p));
             }
-            return listaDTO;
+            return listaNegocio;
         } catch (PersistenciaException e) {
             throw new NegocioException("No fue posible consultar productos.");
         }

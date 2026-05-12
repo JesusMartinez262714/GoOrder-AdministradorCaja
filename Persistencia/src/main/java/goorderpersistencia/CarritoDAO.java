@@ -1,7 +1,7 @@
 
 package goorderpersistencia;
 
-import GoOrderDTO.CarritoDTO;
+import DTOs.CarritoDTO;
 import Interfaces.ICarritoDAO;
 
 /**
