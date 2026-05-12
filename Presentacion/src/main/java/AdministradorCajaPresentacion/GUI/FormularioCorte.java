@@ -4,6 +4,8 @@ import AdministradorCajaDTOs.cajeroDTO;
 import AdministradorCajaDTOs.desgloseDTO;
 import AdministradorCajaPresentacion.Control.Control;
 
+import org.apache.commons.validator.GenericValidator;
+
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 import java.io.File;
@@ -11,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class FormularioCorte extends JFrame {
@@ -210,7 +214,6 @@ public class FormularioCorte extends JFrame {
         pnlTotales.add(Box.createRigidArea(new Dimension(0, 10)));
         pnlTotales.add(pnlFaltanteLine);
 
-        // Botón Verificar
         RoundedButton btnVerificar = new RoundedButton("Verificar", 15, COLOR_ACCENTO, Color.BLACK);
         btnVerificar.setFont(new Font("Segoe UI", Font.BOLD, 15));
         btnVerificar.setPreferredSize(new Dimension(120, 45));
@@ -314,6 +317,10 @@ public class FormularioCorte extends JFrame {
         for (Component c : pnlContenedorFilas.getComponents()) {
             if (c instanceof FilaMonto) {
                 FilaMonto f = (FilaMonto) c;
+                if (f.getMonto() < 0) {
+                    JOptionPane.showMessageDialog(this, "Por favor, corrige los montos en rojo antes de verificar.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
                 totalContado += f.getMonto();
                 desgloses.add(new desgloseDTO(f.getMonto(), 0, f.getMetodo()));
             }
@@ -321,10 +328,7 @@ public class FormularioCorte extends JFrame {
 
         cajeroDTO emp = (cajeroDTO) cmbEmpleados.getSelectedItem();
         if (emp != null) {
-            // Obtenemos el esperado del sistema
             double esperado = control.obtenerMontoEsperado(emp.getIdCajero());
-
-            // Llamamos a la nueva pantalla de conciliación pasándole los datos
             control.mostrarConciliacionFinal(esperado, totalContado, emp, desgloses, rutaImagenSeleccionada);
         } else {
             JOptionPane.showMessageDialog(this, "Por favor selecciona un empleado.");
@@ -339,7 +343,7 @@ public class FormularioCorte extends JFrame {
             setLayout(new GridLayout(1, 2, 0, 0));
             setOpaque(false);
             setMaximumSize(new Dimension(500, 45));
-            setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_DIVISOR)); // Divisor horizontal abajo
+            setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_DIVISOR));
 
             cbMetodo = new JComboBox<>(new String[]{"Efectivo", "Tarjeta", "App", "Referencia"});
             cbMetodo.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -353,36 +357,54 @@ public class FormularioCorte extends JFrame {
             txtMonto.setOpaque(false);
             txtMonto.setBorder(null);
             txtMonto.setCaretColor(Color.WHITE);
-            txtMonto.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+
+            txtMonto.getDocument().addDocumentListener(new DocumentListener() {
                 @Override
-                public void insertUpdate(javax.swing.event.DocumentEvent e) { calcularTotales(); }
+                public void insertUpdate(DocumentEvent e) { calcularTotales(); }
                 @Override
-                public void removeUpdate(javax.swing.event.DocumentEvent e) { calcularTotales(); }
+                public void removeUpdate(DocumentEvent e) { calcularTotales(); }
                 @Override
-                public void changedUpdate(javax.swing.event.DocumentEvent e) { calcularTotales(); }
+                public void changedUpdate(DocumentEvent e) { calcularTotales(); }
             });
+
             RoundedPanel pnlComboWrap = new RoundedPanel(15, Color.WHITE);
             pnlComboWrap.setLayout(new BorderLayout());
             pnlComboWrap.add(cbMetodo, BorderLayout.CENTER);
 
             JPanel pnlLeft = new JPanel(new BorderLayout());
             pnlLeft.setOpaque(false);
-            pnlLeft.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, COLOR_DIVISOR)); // Divisor vertical
+            pnlLeft.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, COLOR_DIVISOR));
             pnlLeft.add(pnlComboWrap, BorderLayout.CENTER);
             pnlLeft.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createMatteBorder(0, 0, 0, 1, COLOR_DIVISOR),
-                    new EmptyBorder(8, 15, 8, 15) // Padding interno
+                    new EmptyBorder(8, 15, 8, 15)
             ));
 
             add(pnlLeft);
             add(txtMonto);
         }
 
+
         public double getMonto() {
-            try {
-                return Double.parseDouble(txtMonto.getText().replace("$", ""));
-            } catch (Exception e) { return 0; }
+            String texto = txtMonto.getText().replace("$", "").trim();
+
+            if (texto.isEmpty()) {
+                txtMonto.setForeground(COLOR_TEXTO);
+                return 0;
+            }
+
+            if (GenericValidator.isDouble(texto)) {
+                double valor = Double.parseDouble(texto);
+                if (valor >= 0) {
+                    txtMonto.setForeground(COLOR_TEXTO); // Todo en orden (Blanco)
+                    return valor;
+                }
+            }
+
+            txtMonto.setForeground(COLOR_ROJO_SUAVE);
+            return -1;
         }
+
         public String getMetodo() { return cbMetodo.getSelectedItem().toString(); }
     }
 
@@ -466,10 +488,10 @@ public class FormularioCorte extends JFrame {
             super.paintComponent(g);
         }
     }
+
     public void limpiarFormulario() {
         pnlContenedorFilas.removeAll();
 
-        // 2. Quitamos la imagen
         rutaImagenSeleccionada = "";
         lblPreviewImagen.setIcon(null);
 
