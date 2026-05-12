@@ -1,6 +1,5 @@
 package DTOs;
 
-import GoOrderDTO.ProductoSeleccionadoDTO;
 
 import java.util.ArrayList;
 import java.util.List;

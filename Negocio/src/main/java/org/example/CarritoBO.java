@@ -11,6 +11,9 @@ import goorderpersistencia.PersistenciaException;
 import java.util.Iterator;
 import java.util.logging.Logger;
 
+/**
+ * @author juanl
+ */
 public class CarritoBO implements ICarritoBO{
 
     private static final Logger LOGGER = Logger.getLogger(CarritoBO.class.getName());
@@ -83,7 +86,7 @@ public class CarritoBO implements ICarritoBO{
             this.carrito = CarritoMapper.toNegocio(carritoDAO.ObtenerCarrito());
 
             for(ProductoSeleccionadoDTO pro : carrito.getProductos()) {
-                if(pro.equals(producto)){
+                if(pro.getNombre().equals(producto.getNombre())){
                     pro.setCantidad(pro.getCantidad()+1);
                     pro.setImporte(pro.getPrecioActual()*pro.getCantidad());
                     carrito.setSubTotal(carrito.getSubTotal()+ producto.getPrecioActual());
@@ -105,7 +108,7 @@ public class CarritoBO implements ICarritoBO{
             this.carrito = CarritoMapper.toNegocio(carritoDAO.ObtenerCarrito());
 
             for(ProductoSeleccionadoDTO pro : carrito.getProductos()) {
-                if(pro.equals(producto) && pro.getCantidad()>0){
+                if(pro.getNombre().equals(producto.getNombre()) && pro.getCantidad()>0){
                     pro.setCantidad(pro.getCantidad()-1);
                     pro.setImporte(pro.getPrecioActual()*pro.getCantidad());
                     carrito.setSubTotal(carrito.getSubTotal()- producto.getPrecioActual());
@@ -155,7 +158,7 @@ public class CarritoBO implements ICarritoBO{
 
             while (iterador.hasNext()) {
                 ProductoSeleccionadoDTO pro = iterador.next();
-                if (pro.equals(producto)) {
+                if (pro.getNombre().equals(producto.getNombre())) {
                     importeARestar = pro.getImporte();
                     iterador.remove();
                     encontrado = true;

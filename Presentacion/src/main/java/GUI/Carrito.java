@@ -119,7 +119,7 @@ public class Carrito extends JFrame {
 
                 contentPanel.add(Box.createRigidArea(new Dimension(0, 10)));
                 contentPanel.add(crearFilaResumen("Subtotal", String.format("$%.2f", subtotalMostrar), true));
-
+//lblMas
             } else {
                 JLabel lblVacio = new JLabel("Tu carrito está vacío.");
                 lblVacio.setFont(new Font("Arial", Font.ITALIC, 16));
@@ -253,8 +253,7 @@ public class Carrito extends JFrame {
                 try {
                     if (producto.getCantidad() < 50) {
                         control.incrementarCantidad(producto);
-                        lblCantidad.setText(String.valueOf(producto.getCantidad()));
-                        lblPrecio.setText(String.format("$%.2f", producto.getPrecioActual()));
+                        control.mostrarCarrito();
                     } else {
                         JOptionPane.showMessageDialog(
                                 Carrito.this,
@@ -277,8 +276,7 @@ public class Carrito extends JFrame {
                         control.mostrarCarrito();
                         return;
                     }
-                    lblCantidad.setText(String.valueOf(producto.getCantidad()));
-                    lblPrecio.setText(String.format("$%.2f", producto.getPrecioActual()));
+                    control.mostrarCarrito();
                 } catch (Exception ex) {
                     Logger.getLogger(Carrito.class.getName()).log(Level.SEVERE, null, ex);
                 }
