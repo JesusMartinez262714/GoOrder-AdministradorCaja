@@ -1,9 +1,6 @@
 package AdministradorCajaPersistencia.mocks;
 
-import AdministradorCajaDTOs.cajeroDTO;
-import AdministradorCajaDTOs.corteCajaDTO;
-import AdministradorCajaDTOs.desgloseDTO; // Importante añadir este
-import AdministradorCajaDTOs.ventaDTO;
+import AdministradorCajaDTOs.*;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -14,7 +11,7 @@ public class MockDatabase {
     private static List<ventaDTO> ventas = new ArrayList<>();
     private static List<cajeroDTO> cajeros = new ArrayList<>();
     private static List<corteCajaDTO> historialCortes = new ArrayList<>();
-
+    private static List<supervisorDTO> supervisores = new ArrayList<>();
     static {
         cajeros.add(new cajeroDTO(1, "Juan Leonel", "Matutino"));
         cajeros.add(new cajeroDTO(2, "Maria Garcia", "Vespertino"));
@@ -23,6 +20,9 @@ public class MockDatabase {
         ventas.add(new ventaDTO(2, 2100.00, 2, 1));
         ventas.add(new ventaDTO(3, 1550.00, 3, 1));
         ventas.add(new ventaDTO(4, 500.00, 1, 2));
+
+        supervisores.add(new supervisorDTO(1, "Jesus Martinez", "Matutino"));
+        supervisores.add(new supervisorDTO(2, "Ana Lopez", "Vespertino"));
 
 
         List<desgloseDTO> desgloseJuan = new ArrayList<>();
@@ -52,7 +52,13 @@ public class MockDatabase {
                 "Faltaron 50 pesos en la caja",
                 desgloseMaria // Inyectamos la lista dinámica
         ));
+
     }
+    public static List<supervisorDTO> getSupervisores() {
+        return supervisores;
+    }
+
+
 
     public static List<ventaDTO> getVentas() {
         return ventas;

@@ -5,17 +5,12 @@ public class resumenVentasDTO {
     private double totalEfectivo;
     private double totalTarjeta;
     private double totalApp;
+    private double totalReferencia;
     private double totalEsperadoSistema;
 
     public resumenVentasDTO() {
     }
 
-    public resumenVentasDTO(double totalEfectivo, double totalTarjeta, double totalApp, double totalEsperadoSistema) {
-        this.totalEfectivo = totalEfectivo;
-        this.totalTarjeta = totalTarjeta;
-        this.totalApp = totalApp;
-        this.totalEsperadoSistema = totalEsperadoSistema;
-    }
 
     public double getTotalEfectivo() {
         return totalEfectivo;
@@ -27,6 +22,14 @@ public class resumenVentasDTO {
 
     public double getTotalTarjeta() {
         return totalTarjeta;
+    }
+
+    public double getTotalReferencia() {
+        return totalReferencia;
+    }
+
+    public void setTotalReferencia(double totalReferencia) {
+        this.totalReferencia = totalReferencia;
     }
 
     public void setTotalTarjeta(double totalTarjeta) {

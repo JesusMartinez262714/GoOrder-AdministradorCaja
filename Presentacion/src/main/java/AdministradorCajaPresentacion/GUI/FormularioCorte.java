@@ -4,8 +4,6 @@ import AdministradorCajaDTOs.cajeroDTO;
 import AdministradorCajaDTOs.desgloseDTO;
 import AdministradorCajaPresentacion.Control.Control;
 
-import org.apache.commons.validator.GenericValidator;
-
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 import java.io.File;
@@ -13,15 +11,14 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-public class FormularioCorte extends JFrame {
+public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoListener {
 
     private Control control;
     private JPanel pnlContenedorFilas;
     private JComboBox<cajeroDTO> cmbEmpleados;
+    private JTextField txtSupervisor;
     private JLabel lblTotalManualBadge, lblFaltanteBadge, lblPreviewImagen;
     private String rutaImagenSeleccionada = "";
 
@@ -30,7 +27,6 @@ public class FormularioCorte extends JFrame {
     private final Color COLOR_ACCENTO = new Color(45, 212, 112);
     private final Color COLOR_CARD = new Color(60, 60, 60);
     private final Color COLOR_DIVISOR = new Color(85, 85, 85);
-    private final Color COLOR_ROJO_SUAVE = new Color(255, 107, 107);
 
     public FormularioCorte(Control control) {
         this.control = control;
@@ -80,13 +76,16 @@ public class FormularioCorte extends JFrame {
         pnlPrincipal.add(pnlDivisorHeader);
         pnlPrincipal.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        JTextField txtSupervisor = new JTextField("Jesus Martinez");
+        txtSupervisor = new JTextField("---");
         txtSupervisor.setEditable(false);
         pnlPrincipal.add(crearFilaPildora("Supervisor:", txtSupervisor));
         pnlPrincipal.add(Box.createRigidArea(new Dimension(0, 15)));
 
         cmbEmpleados = new JComboBox<>();
-        cmbEmpleados.addActionListener(e -> calcularTotales());
+        cmbEmpleados.addActionListener(e -> {
+            calcularTotales();
+            actualizarSupervisor();
+        });
         pnlPrincipal.add(crearFilaPildora("Empleado:", cmbEmpleados));
         pnlPrincipal.add(Box.createRigidArea(new Dimension(0, 25)));
 
@@ -192,7 +191,6 @@ public class FormularioCorte extends JFrame {
         pnlTotalLine.add(lblTotalText);
         pnlTotalLine.add(badgeTotal);
 
-        // Badge Faltante
         JPanel pnlFaltanteLine = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         pnlFaltanteLine.setOpaque(false);
         JLabel lblFaltanteText = new JLabel("Faltante:");
@@ -262,7 +260,9 @@ public class FormularioCorte extends JFrame {
     }
 
     private void agregarFila() {
-        FilaMonto fila = new FilaMonto();
+        if (pnlContenedorFilas.getComponentCount() >= 4) return;
+
+        FilaMontoPanel fila = new FilaMontoPanel(this); // Instanciamos la clase externa
         pnlContenedorFilas.add(fila);
         pnlContenedorFilas.revalidate();
         calcularTotales();
@@ -289,11 +289,21 @@ public class FormularioCorte extends JFrame {
         }
     }
 
+    private void actualizarSupervisor() {
+        cajeroDTO emp = (cajeroDTO) cmbEmpleados.getSelectedItem();
+        if (emp != null && control != null) {
+            String nombreSupervisor = control.obtenerNombreSupervisorAsociado(emp.getIdCajero());
+            txtSupervisor.setText(nombreSupervisor);
+        } else {
+            txtSupervisor.setText("---");
+        }
+    }
+
     public void calcularTotales() {
         double total = 0;
         for (Component c : pnlContenedorFilas.getComponents()) {
-            if (c instanceof FilaMonto) {
-                total += ((FilaMonto) c).getMonto();
+            if (c instanceof FilaMontoPanel) {
+                total += ((FilaMontoPanel) c).getMonto();
             }
         }
         lblTotalManualBadge.setText(String.format("$%.0f", total));
@@ -315,8 +325,14 @@ public class FormularioCorte extends JFrame {
         List<desgloseDTO> desgloses = new ArrayList<>();
 
         for (Component c : pnlContenedorFilas.getComponents()) {
-            if (c instanceof FilaMonto) {
-                FilaMonto f = (FilaMonto) c;
+            if (c instanceof FilaMontoPanel) {
+                FilaMontoPanel f = (FilaMontoPanel) c;
+
+                if (f.getMetodo().equals("")) {
+                    JOptionPane.showMessageDialog(this, "Por favor, selecciona un método de pago en todas las filas antes de verificar.", "Método Faltante", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
                 if (f.getMonto() < 0) {
                     JOptionPane.showMessageDialog(this, "Por favor, corrige los montos en rojo antes de verificar.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
                     return;
@@ -324,6 +340,16 @@ public class FormularioCorte extends JFrame {
                 totalContado += f.getMonto();
                 desgloses.add(new desgloseDTO(f.getMonto(), 0, f.getMetodo()));
             }
+        }
+
+        if (totalContado == 0) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "No has ingresado ningún monto.\nPor favor, ingresa las cantidades físicas en caja para poder proceder con el corte.",
+                    "Corte Vacío",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
         }
 
         cajeroDTO emp = (cajeroDTO) cmbEmpleados.getSelectedItem();
@@ -335,79 +361,6 @@ public class FormularioCorte extends JFrame {
         }
     }
 
-    class FilaMonto extends JPanel {
-        private JComboBox<String> cbMetodo;
-        private JTextField txtMonto;
-
-        public FilaMonto() {
-            setLayout(new GridLayout(1, 2, 0, 0));
-            setOpaque(false);
-            setMaximumSize(new Dimension(500, 45));
-            setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_DIVISOR));
-
-            cbMetodo = new JComboBox<>(new String[]{"Efectivo", "Tarjeta", "App", "Referencia"});
-            cbMetodo.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            cbMetodo.setForeground(Color.BLACK);
-            cbMetodo.setBackground(Color.WHITE);
-
-            txtMonto = new JTextField("0");
-            txtMonto.setHorizontalAlignment(JTextField.CENTER);
-            txtMonto.setFont(new Font("Segoe UI", Font.BOLD, 16));
-            txtMonto.setForeground(COLOR_TEXTO);
-            txtMonto.setOpaque(false);
-            txtMonto.setBorder(null);
-            txtMonto.setCaretColor(Color.WHITE);
-
-            txtMonto.getDocument().addDocumentListener(new DocumentListener() {
-                @Override
-                public void insertUpdate(DocumentEvent e) { calcularTotales(); }
-                @Override
-                public void removeUpdate(DocumentEvent e) { calcularTotales(); }
-                @Override
-                public void changedUpdate(DocumentEvent e) { calcularTotales(); }
-            });
-
-            RoundedPanel pnlComboWrap = new RoundedPanel(15, Color.WHITE);
-            pnlComboWrap.setLayout(new BorderLayout());
-            pnlComboWrap.add(cbMetodo, BorderLayout.CENTER);
-
-            JPanel pnlLeft = new JPanel(new BorderLayout());
-            pnlLeft.setOpaque(false);
-            pnlLeft.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, COLOR_DIVISOR));
-            pnlLeft.add(pnlComboWrap, BorderLayout.CENTER);
-            pnlLeft.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createMatteBorder(0, 0, 0, 1, COLOR_DIVISOR),
-                    new EmptyBorder(8, 15, 8, 15)
-            ));
-
-            add(pnlLeft);
-            add(txtMonto);
-        }
-
-
-        public double getMonto() {
-            String texto = txtMonto.getText().replace("$", "").trim();
-
-            if (texto.isEmpty()) {
-                txtMonto.setForeground(COLOR_TEXTO);
-                return 0;
-            }
-
-            if (GenericValidator.isDouble(texto)) {
-                double valor = Double.parseDouble(texto);
-                if (valor >= 0) {
-                    txtMonto.setForeground(COLOR_TEXTO); // Todo en orden (Blanco)
-                    return valor;
-                }
-            }
-
-            txtMonto.setForeground(COLOR_ROJO_SUAVE);
-            return -1;
-        }
-
-        public String getMetodo() { return cbMetodo.getSelectedItem().toString(); }
-    }
-
     public void cargarEmpleados(List<cajeroDTO> empleados) {
         cmbEmpleados.removeAllItems();
         if (empleados != null) {
@@ -415,8 +368,41 @@ public class FormularioCorte extends JFrame {
                 cmbEmpleados.addItem(emp);
             }
         }
+        actualizarSupervisor();
     }
 
+    public void limpiarFormulario() {
+        pnlContenedorFilas.removeAll();
+        rutaImagenSeleccionada = "";
+        lblPreviewImagen.setIcon(null);
+
+        if (cmbEmpleados.getItemCount() > 0) {
+            cmbEmpleados.setSelectedIndex(0);
+        }
+        txtSupervisor.setText("---");
+        agregarFila();
+    }
+
+
+    @Override
+    public void onCambio() {
+        calcularTotales();
+    }
+
+    @Override
+    public boolean verificarDuplicado(String metodo, FilaMontoPanel origen) {
+        // Verificamos si otra fila (que no sea la que está preguntando) ya tiene el método
+        for (Component c : pnlContenedorFilas.getComponents()) {
+            if (c instanceof FilaMontoPanel && c != origen) {
+                if (((FilaMontoPanel) c).getMetodo().equals(metodo)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // --- COMPONENTES VISUALES ---
 
     class RoundedPanel extends JPanel {
         private int radius;
@@ -487,18 +473,5 @@ public class FormularioCorte extends JFrame {
             g2.dispose();
             super.paintComponent(g);
         }
-    }
-
-    public void limpiarFormulario() {
-        pnlContenedorFilas.removeAll();
-
-        rutaImagenSeleccionada = "";
-        lblPreviewImagen.setIcon(null);
-
-        if (cmbEmpleados.getItemCount() > 0) {
-            cmbEmpleados.setSelectedIndex(0);
-        }
-
-        agregarFila();
     }
 }

@@ -14,7 +14,7 @@ import javax.swing.border.EmptyBorder;
 
 public class ResumenTurno extends JFrame {
     private Control control;
-    private JLabel lblNombreSesion, lblTituloDinamico, lblEfectivo, lblApp, lblTarjeta, lblReferencia, lblStatusPedidos, lblHora;
+    private JLabel lblNombreSesion, lblTituloDinamico, lblEfectivo, lblApp, lblTarjeta, lblReferencia, lblHora;
     private JComboBox<cajeroDTO> cmbCajeros;
     private JButton btnCerrar;
 
@@ -28,8 +28,6 @@ public class ResumenTurno extends JFrame {
         configurarVentana();
         iniciarReloj();
     }
-
-
 
     private void configurarVentana() {
         setTitle("GoOrder - Resumen de Turno");
@@ -64,7 +62,11 @@ public class ResumenTurno extends JFrame {
         pnlSidebar.add(Box.createRigidArea(new Dimension(0, 40)));
         pnlSidebar.add(new BotonRedondeado("Caja/Turno", true));
         pnlSidebar.add(Box.createRigidArea(new Dimension(0, 20)));
-        pnlSidebar.add(new BotonRedondeado("AperturaCaja", false));
+
+        JButton btnAperturaCaja = new BotonRedondeado("AperturaCaja", false);
+        btnAperturaCaja.addActionListener(e -> control.mostrarAperturaCaja());
+        pnlSidebar.add(btnAperturaCaja);
+
         pnlSidebar.add(Box.createRigidArea(new Dimension(0, 20)));
         pnlSidebar.add(new BotonRedondeado("GestionAdeudos", false));
         pnlSidebar.add(Box.createVerticalGlue());
@@ -120,13 +122,8 @@ public class ResumenTurno extends JFrame {
         pnlFooter.setOpaque(false);
         pnlFooter.setBorder(new EmptyBorder(30, 0, 0, 0));
 
-        lblStatusPedidos = new JLabel("*Cargando estado de pedidos...");
-        lblStatusPedidos.setForeground(Color.GRAY);
-        pnlFooter.add(lblStatusPedidos, BorderLayout.NORTH);
-
         JPanel pnlBotonesAccion = new JPanel(new BorderLayout());
         pnlBotonesAccion.setOpaque(false);
-        pnlBotonesAccion.setBorder(new EmptyBorder(10, 0, 0, 0));
 
         JButton btnHistorial = new BotonRedondeado("VER HISTORIAL", true);
         btnHistorial.setPreferredSize(new Dimension(220, 55));
@@ -136,10 +133,20 @@ public class ResumenTurno extends JFrame {
         btnCerrar = new BotonRedondeado("INICIAR CIERRE DE CAJA", true);
         btnCerrar.setPreferredSize(new Dimension(280, 55));
         btnCerrar.setFont(new Font("Segoe UI", Font.BOLD, 16));
+
         btnCerrar.addActionListener(e -> {
+            if (cmbCajeros.getItemCount() == 0) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "No se puede iniciar el cierre porque no hay ninguna caja abierta actualmente.",
+                        "Acción Denegada",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
             control.mostrarFormularioCorte();
         });
-
         pnlBotonesAccion.add(btnHistorial, BorderLayout.WEST);
         pnlBotonesAccion.add(btnCerrar, BorderLayout.EAST);
         pnlFooter.add(pnlBotonesAccion, BorderLayout.CENTER);
@@ -156,15 +163,48 @@ public class ResumenTurno extends JFrame {
         add(pnlMain, BorderLayout.CENTER);
     }
 
-    // --- MÉTODOS DE COMUNICACIÓN CON CONTROL ---
 
-    public void cargarDatos(resumenVentasDTO resumen, List<cajeroDTO> cajeros, String nombreSupervisor) {
+    public void mostrarEstadoSinSesion() {
+        lblNombreSesion.setText("Sesión Actual: ---");
+        lblTituloDinamico.setText("Esperando apertura de turno...");
+
+        cmbCajeros.removeAllItems();
+
+        lblEfectivo.setText("$0.00");
+        lblApp.setText("$0.00");
+        lblTarjeta.setText("$0.00");
+        lblReferencia.setText("$0.00");
+
+
+    }
+
+    public void cargarDatos(resumenVentasDTO resumen, List<cajeroDTO> cajeros, String nombreSupervisor, int idEmpleadoActivo) {
         lblNombreSesion.setText("Sesión Actual: " + (nombreSupervisor != null ? nombreSupervisor : "---"));
+
+
+
+        java.awt.event.ItemListener[] listeners = cmbCajeros.getItemListeners();
+        for (java.awt.event.ItemListener il : listeners) cmbCajeros.removeItemListener(il);
+
         cmbCajeros.removeAllItems();
         if (cajeros != null) {
             for (cajeroDTO cajero : cajeros) cmbCajeros.addItem(cajero);
         }
-        actualizarMontos(resumen, (cajeroDTO) cmbCajeros.getSelectedItem());
+
+        seleccionarEmpleadoEnCombo(idEmpleadoActivo);
+
+        for (java.awt.event.ItemListener il : listeners) cmbCajeros.addItemListener(il);
+
+        actualizarMontos(resumen, (cajeroDTO) cmbCajeros.getSelectedItem(), nombreSupervisor);
+    }
+
+    private void seleccionarEmpleadoEnCombo(int idBuscado) {
+        for (int i = 0; i < cmbCajeros.getItemCount(); i++) {
+            if (cmbCajeros.getItemAt(i).getIdCajero() == idBuscado) {
+                cmbCajeros.setSelectedIndex(i);
+                break;
+            }
+        }
     }
 
     public void setCajeroChangeListener(java.awt.event.ItemListener listener) {
@@ -174,30 +214,21 @@ public class ResumenTurno extends JFrame {
         cmbCajeros.addItemListener(listener);
     }
 
-    public void actualizarMontos(resumenVentasDTO resumen, cajeroDTO cajero) {
+    public void actualizarMontos(resumenVentasDTO resumen, cajeroDTO cajero, String nombreSupervisor) {
         if (resumen != null) {
             lblEfectivo.setText(String.format("$%,.2f", resumen.getTotalEfectivo()));
             lblApp.setText(String.format("$%,.2f", resumen.getTotalApp()));
             lblTarjeta.setText(String.format("$%,.2f", resumen.getTotalTarjeta()));
+            lblReferencia.setText(String.format("$%,.2f", resumen.getTotalReferencia()));
         }
         if (cajero != null) {
             lblTituloDinamico.setText("Resumen de Ventas del Turno de " + cajero.getNombreCompleto() + ".");
         }
-    }
-
-    public void actualizarEstadoPedidos(int cantidadPedidos) {
-        if (cantidadPedidos == 0) {
-            lblStatusPedidos.setText("*Hay 0 pedidos pendientes. La caja puede cerrarse.");
-            lblStatusPedidos.setForeground(Color.GRAY);
-            btnCerrar.setEnabled(true);
-        } else {
-            lblStatusPedidos.setText("*ATENCIÓN: Hay " + cantidadPedidos + " pedidos pendientes. No puedes cerrar caja.");
-            lblStatusPedidos.setForeground(new Color(255, 85, 85));
-            btnCerrar.setEnabled(false);
+        if (nombreSupervisor != null) {
+            lblNombreSesion.setText("Sesión Actual: " + nombreSupervisor);
         }
     }
 
-    // --- CLASES DE DISEÑO ---
 
     class BotonRedondeado extends JButton {
         private boolean destacado;

@@ -16,17 +16,9 @@ public class Main {
         } catch (Exception e) {
             System.err.println("No se pudo establecer el aspecto visual del sistema.");
         }
-
-
         IVentaDAO ventaDAO = new VentaDAOMock();
-
-
         INegocioCorte negocio = new AdministradorCaja(ventaDAO);
-
-
         Control control = new Control(negocio);
-
-
         control.iniciarFlujoResumen();
     }
 }

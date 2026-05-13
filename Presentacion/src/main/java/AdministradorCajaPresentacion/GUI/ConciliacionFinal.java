@@ -23,8 +23,8 @@ public class ConciliacionFinal extends JFrame {
     private final Color COLOR_TEXTO = new Color(240, 240, 240);
     private final Color COLOR_CARD = new Color(50, 50, 50);
     private final Color COLOR_CARD_DARK = new Color(25, 25, 25);
-    private final Color COLOR_ACCENTO = new Color(45, 212, 112); // Verde suave
-    private final Color COLOR_ROJO = new Color(255, 107, 107);   // Rojo suave
+    private final Color COLOR_ACCENTO = new Color(45, 212, 112);
+    private final Color COLOR_ROJO = new Color(255, 107, 107);
     private final Color COLOR_DIVISOR = new Color(85, 85, 85);
 
     public ConciliacionFinal(Control control, double esperado, double contado, cajeroDTO emp, List<desgloseDTO> desgloses, String rutaImg) {
@@ -101,8 +101,9 @@ public class ConciliacionFinal extends JFrame {
         btnFinalizar.addActionListener(e -> {
             String nota = (txtNotas != null) ? txtNotas.getText() : "Sin observaciones";
 
+            control.guardarCorteFinal(esperado, contado, empleado.getIdCajero(), desgloses, rutaImagen, nota);
+
             this.dispose();
-            control.volverAResumen();
         });
 
         JPanel pnlBtnFinal = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));

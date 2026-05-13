@@ -1,8 +1,7 @@
 package Interfaces;
 
-import AdministradorCajaDTOs.cajeroDTO;
-import AdministradorCajaDTOs.corteCajaDTO;
-import AdministradorCajaDTOs.resumenVentasDTO;
+import AdministradorCajaDTOs.*;
+
 import java.util.Date;
 import java.util.List;
 
@@ -12,5 +11,6 @@ public interface INegocioCorte {
     List<corteCajaDTO> consultarCortesRealizados(Date fechaInicio, Date fechaFin);
     double obtenerVentasTotalesPorCajero(int idEmpleado);
     List<cajeroDTO> consultarCajeros();
-
+    boolean registrarApertura(aperturaCajaDTO apertura);
+    List<supervisorDTO> consultarSupervisores();
 }

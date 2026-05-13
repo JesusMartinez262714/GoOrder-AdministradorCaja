@@ -17,9 +17,9 @@ public class HistorialCortes extends JFrame {
     private JPanel pnlTicketDetalle;
     private JPopupMenu menuFiltros;
     private final Color COLOR_FONDO = new Color(26, 26, 26);
-    private final Color COLOR_ACCENTO = new Color(37, 211, 102); // Verde vibrante
-    private final Color COLOR_CANCELADO = new Color(139, 115, 105); // Café rojizo
-    private final Color COLOR_ELIMINAR = new Color(211, 47, 47); // Rojo
+    private final Color COLOR_ACCENTO = new Color(37, 211, 102);
+    private final Color COLOR_CANCELADO = new Color(139, 115, 105);
+    private final Color COLOR_ELIMINAR = new Color(211, 47, 47);
     private final Color COLOR_CARD_BG = Color.WHITE;
 
     public HistorialCortes(Control control) {
@@ -73,8 +73,8 @@ public class HistorialCortes extends JFrame {
 
 
         menuFiltros = new JPopupMenu();
-        menuFiltros.setBackground(new Color(45, 45, 45)); // Gris oscuro como tus tarjetas
-        menuFiltros.setBorder(BorderFactory.createLineBorder(new Color(70, 70, 70))); // Borde sutil
+        menuFiltros.setBackground(new Color(45, 45, 45));
+        menuFiltros.setBorder(BorderFactory.createLineBorder(new Color(70, 70, 70)));
 
         String[] opciones = {"Recientes", "Antiguos", "Ascendente", "Descendente", "Activos", "Cancelados"};
 
@@ -82,7 +82,7 @@ public class HistorialCortes extends JFrame {
             JMenuItem item = new JMenuItem(op);
 
             item.setBackground(new Color(45, 45, 45));
-            item.setForeground(Color.WHITE); // Texto blanco ahora sí
+            item.setForeground(Color.WHITE);
             item.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
             item.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
@@ -140,7 +140,9 @@ public class HistorialCortes extends JFrame {
 
         JPanel pnlFooterLeft = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         pnlFooterLeft.setOpaque(false);
-        pnlFooterLeft.add(new BotonAccion("<-VOLVER", COLOR_ACCENTO, Color.BLACK, false));
+        JButton btnvolver = new BotonAccion("<-VOLVER", COLOR_ACCENTO, Color.BLACK, false);
+        btnvolver.addActionListener(e ->control.volverAResumen());
+        pnlFooterLeft.add(btnvolver);
         JButton btnAgregar = new BotonAccion("Agregar", COLOR_ACCENTO, Color.BLACK, true);
         btnAgregar.addActionListener(e -> {
             control.mostrarFormularioCorte();
@@ -228,7 +230,7 @@ public class HistorialCortes extends JFrame {
         txt.setEditable(false);
         txt.setBorder(null);
 
-        // Maquetación del HTML (Respetando tu diseño anterior)
+
         String html = "<html><body style='font-family: monospace; font-size: 11px; color: #555;'>"
                 + "<center>"
                 + "<h1 style='color:#2ECC71; font-style:italic; font-size: 28px; margin:0;'>GoOrder</h1>"

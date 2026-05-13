@@ -1,9 +1,6 @@
 package administradorCaja;
 
-import AdministradorCajaDTOs.cajeroDTO;
-import AdministradorCajaDTOs.corteCajaDTO;
-import AdministradorCajaDTOs.resumenVentasDTO;
-import AdministradorCajaDTOs.ventaDTO;
+import AdministradorCajaDTOs.*;
 import AdministradorCajaNegocio.BOs.GeneradorResumenBO;
 import AdministradorCajaNegocio.Interfaces.IGeneradorResumenBO;
 import AdministradorCajaPersistencia.Interfaces.ICorteCajaDAO;
@@ -33,6 +30,8 @@ public class AdministradorCaja implements INegocioCorte {
 
     @Override
     public List<corteCajaDTO> consultarCortesRealizados(Date fechaInicio, Date fechaFin) {
+        // TODO (BD): Reemplazar el Mock por el DAO real.
+        // Cambiar "new CorteCajaDAOMock()" por la clase que haga de la bd
         ICorteCajaDAO corteDAO = new CorteCajaDAOMock();
         return corteDAO.obtenerHistorial(fechaInicio, fechaFin);
     }
@@ -41,6 +40,9 @@ public class AdministradorCaja implements INegocioCorte {
 
     @Override
     public List<cajeroDTO> consultarCajeros() {
+        // TODO (BD): Eliminar MockDatabase.
+        // 1. Instanciar ICajeroDAO.
+        // 2. Retornar cajeroDAO.consultarTodosLosCajeros();
         return MockDatabase.getCajeros();
     }
 
@@ -52,5 +54,22 @@ public class AdministradorCaja implements INegocioCorte {
         return ventas.stream()
                 .mapToDouble(ventaDTO::getMontoTotal)
                 .sum();
+    }
+
+    @Override
+    public boolean registrarApertura(aperturaCajaDTO apertura) {
+        // TODO (BD): Conectar con la base de datos.
+        // 1. Instanciar IAperturaCajaDAO.
+        // 2. Retornar aperturaCajaDAO.insertarApertura(apertura);
+        System.out.println("Caja abierta para: " + apertura.getNombreCajero() + " con $" + apertura.getMontoInicial());
+        return true;
+    }
+
+    @Override
+    public List<supervisorDTO> consultarSupervisores() {
+        // TODO (BD): Eliminar MockDatabase.
+        // 1. Instanciar ISupervisorDAO.
+        // 2. Retornar supervisorDAO.consultarTodosLosSupervisores();
+        return MockDatabase.getSupervisores();
     }
 }
