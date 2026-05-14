@@ -6,7 +6,6 @@ public class desgloseDTO {
     private int idMetodoPago;
     private String nombreMetodo;
 
-
     public desgloseDTO() {
     }
 
@@ -16,12 +15,27 @@ public class desgloseDTO {
         this.nombreMetodo = nombreMetodo;
     }
 
-    public double getMontoDeclarado() { return montoDeclarado; }
-    public void setMontoDeclarado(double montoDeclarado) { this.montoDeclarado = montoDeclarado; }
+    public double getMontoDeclarado() {
+        return montoDeclarado;
+    }
 
-    public int getIdMetodoPago() { return idMetodoPago; }
-    public void setIdMetodoPago(int idMetodoPago) { this.idMetodoPago = idMetodoPago; }
+    public void setMontoDeclarado(double montoDeclarado) {
+        this.montoDeclarado = montoDeclarado;
+    }
 
-    public String getNombreMetodo() { return nombreMetodo; }
-    public void setNombreMetodo(String nombreMetodo) { this.nombreMetodo = nombreMetodo; }
+    public int getIdMetodoPago() {
+        return idMetodoPago;
+    }
+
+    public void setIdMetodoPago(int idMetodoPago) {
+        this.idMetodoPago = idMetodoPago;
+    }
+
+    public String getNombreMetodo() {
+        return nombreMetodo;
+    }
+
+    public void setNombreMetodo(String nombreMetodo) {
+        this.nombreMetodo = nombreMetodo;
+    }
 }

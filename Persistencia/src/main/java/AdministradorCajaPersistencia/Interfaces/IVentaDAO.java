@@ -1,10 +1,9 @@
 package AdministradorCajaPersistencia.Interfaces;
 
-import AdministradorCajaDTOs.ventaDTO;
-
+import AdministradorCajaPersistencia.Entitys.venta;
 import java.util.Date;
 import java.util.List;
 
 public interface IVentaDAO {
-    List<ventaDTO> obtenerVentas(int idCajero, Date fecha);
+    List<venta> obtenerVentas(int idCajero, Date fecha);
 }

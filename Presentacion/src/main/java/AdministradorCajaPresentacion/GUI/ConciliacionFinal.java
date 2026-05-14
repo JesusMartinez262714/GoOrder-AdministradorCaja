@@ -2,6 +2,7 @@ package AdministradorCajaPresentacion.GUI;
 
 import AdministradorCajaDTOs.cajeroDTO;
 import AdministradorCajaDTOs.desgloseDTO;
+import AdministradorCajaPersistencia.Entitys.cajero;
 import AdministradorCajaPresentacion.Control.Control;
 
 import java.awt.*;
@@ -40,7 +41,7 @@ public class ConciliacionFinal extends JFrame {
     }
 
     private void configurarVentana() {
-        setTitle("GoOrder - Conciliación");
+        setTitle("GoOrder - Conciliación Final");
         setSize(650, 720);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -99,11 +100,22 @@ public class ConciliacionFinal extends JFrame {
         btnFinalizar.setPreferredSize(new Dimension(280, 50));
 
         btnFinalizar.addActionListener(e -> {
-            String nota = (txtNotas != null) ? txtNotas.getText() : "Sin observaciones";
+            String nota = "Sin observaciones";
+            if (!cuadra) {
+                nota = txtNotas.getText().trim();
+                if (nota.isEmpty() || nota.equalsIgnoreCase("Escribe el motivo de la diferencia aquí...")) {
+                    JOptionPane.showMessageDialog(this,
+                            "Es obligatorio justificar la diferencia para poder cerrar la caja.",
+                            "Justificación Requerida",
+                            JOptionPane.WARNING_MESSAGE);
+                    txtNotas.requestFocus();
+                    return;
+                }
+            }
 
             control.guardarCorteFinal(esperado, contado, empleado.getIdCajero(), desgloses, rutaImagen, nota);
-
             this.dispose();
+            control.volverAResumen();
         });
 
         JPanel pnlBtnFinal = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
@@ -119,7 +131,6 @@ public class ConciliacionFinal extends JFrame {
         scroll.getViewport().setOpaque(false);
         scroll.setOpaque(false);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
-
         scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
         add(scroll, BorderLayout.CENTER);
@@ -137,7 +148,7 @@ public class ConciliacionFinal extends JFrame {
 
                 g2.setColor(cuadra ? COLOR_ACCENTO : COLOR_ROJO);
                 g2.setStroke(new BasicStroke(1.5f));
-                g2.drawRoundRect(1, 1, getWidth()-3, getHeight()-3, 20, 20);
+                g2.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 20, 20);
 
                 g2.dispose();
             }
@@ -159,7 +170,8 @@ public class ConciliacionFinal extends JFrame {
             p.add(lblIcon, BorderLayout.WEST);
 
             double dif = contado - esperado;
-            JLabel lblMsg = new JLabel("<html><div style='width: 350px;'><b style='font-size:14px; color:#ff6b6b;'>DIFERENCIA DETECTADA: $" + String.format("%,.2f", dif) + "</b><br><font color='#A0A0A0'>Se requiere un comentario obligatorio justificando la diferencia para proceder con el ajuste.</font></div></html>");
+            String mensajeDif = "<html><div style='width: 350px;'><b style='font-size:14px; color:#ff6b6b;'>DIFERENCIA DETECTADA: $" + String.format("%,.2f", dif) + "</b><br><font color='#A0A0A0'>Se requiere un comentario obligatorio justificando la diferencia para proceder con el ajuste.</font></div></html>";
+            JLabel lblMsg = new JLabel(mensajeDif);
             p.add(lblMsg, BorderLayout.NORTH);
 
             txtNotas = new JTextArea(4, 20);
@@ -169,6 +181,20 @@ public class ConciliacionFinal extends JFrame {
             txtNotas.setFont(new Font("Segoe UI", Font.PLAIN, 14));
             txtNotas.setLineWrap(true);
             txtNotas.setWrapStyleWord(true);
+
+            txtNotas.setText("Escribe el motivo de la diferencia aquí...");
+            txtNotas.addFocusListener(new java.awt.event.FocusAdapter() {
+                public void focusGained(java.awt.event.FocusEvent evt) {
+                    if (txtNotas.getText().equals("Escribe el motivo de la diferencia aquí...")) {
+                        txtNotas.setText("");
+                    }
+                }
+                public void focusLost(java.awt.event.FocusEvent evt) {
+                    if (txtNotas.getText().trim().isEmpty()) {
+                        txtNotas.setText("Escribe el motivo de la diferencia aquí...");
+                    }
+                }
+            });
 
             JScrollPane scrollNotas = new JScrollPane(txtNotas);
             scrollNotas.setBorder(null);
@@ -184,6 +210,8 @@ public class ConciliacionFinal extends JFrame {
         }
         return p;
     }
+
+
 
     class CardMonto extends JPanel {
         private boolean resaltada;

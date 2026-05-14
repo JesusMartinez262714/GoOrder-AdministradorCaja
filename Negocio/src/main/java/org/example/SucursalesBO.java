@@ -1,6 +1,7 @@
 package org.example;
 
 
+import DTOs.SucursalDTO;
 import Interfaces.ISucursalesBO;
 import Interfaces.ISucursalesDAO;
 import Mappers.SucursalMapper;
@@ -20,14 +21,14 @@ public class SucursalesBO implements ISucursalesBO{
     @Override
     public List<GoOrderDTO.SucursalDTO> consultarSucursales() throws NegocioException {
         try {
-            List<DTOs.SucursalDTO> sucursalesPersistencia = sucursalDAO.consultarSucursales();
+            List<SucursalDTO> sucursalesPersistencia = sucursalDAO.consultarSucursales();
 
             if(sucursalesPersistencia.isEmpty()){
                 throw new NegocioException("No hay sucursales disponibles");
             }
 
             List<GoOrderDTO.SucursalDTO> sucursalesNegocio = new ArrayList<>();
-            for(DTOs.SucursalDTO sP : sucursalesPersistencia) {
+            for(SucursalDTO sP : sucursalesPersistencia) {
                 sucursalesNegocio.add(SucursalMapper.toNegocio(sP));
             }
 

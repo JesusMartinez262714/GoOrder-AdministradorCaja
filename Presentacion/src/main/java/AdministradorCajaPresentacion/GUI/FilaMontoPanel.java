@@ -1,18 +1,20 @@
 package AdministradorCajaPresentacion.GUI;
 
 import org.apache.commons.validator.GenericValidator;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 
 public class FilaMontoPanel extends JPanel {
     private JComboBox<String> cbMetodo;
     private JTextField txtMonto;
     private String metodoAnterior = "";
     private FilaMontoListener listener;
-
 
     private final Color COLOR_DIVISOR = new Color(85, 85, 85);
     private final Color COLOR_TEXTO = new Color(240, 240, 240);
@@ -31,13 +33,16 @@ public class FilaMontoPanel extends JPanel {
 
         cbMetodo = new JComboBox<>(new String[]{"", "Efectivo", "Tarjeta", "App", "Referencia"});
         cbMetodo.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        cbMetodo.setBackground(Color.WHITE);
 
         cbMetodo.addItemListener(e -> {
             if (e.getStateChange() == java.awt.event.ItemEvent.SELECTED) {
                 String nuevoMetodo = (String) e.getItem();
 
                 if (!nuevoMetodo.equals("") && listener.verificarDuplicado(nuevoMetodo, this)) {
-                    JOptionPane.showMessageDialog(this, "Este método ya está registrado.");
+                    JOptionPane.showMessageDialog(this,
+                            "Este método de pago ya está registrado en otra fila.",
+                            "Método Duplicado", JOptionPane.WARNING_MESSAGE);
 
                     cbMetodo.setSelectedItem(metodoAnterior);
                 } else {
@@ -54,6 +59,20 @@ public class FilaMontoPanel extends JPanel {
         txtMonto.setOpaque(false);
         txtMonto.setBorder(null);
 
+        txtMonto.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                SwingUtilities.invokeLater(() -> txtMonto.selectAll());
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (txtMonto.getText().trim().isEmpty()) {
+                    txtMonto.setText("0");
+                }
+            }
+        });
+
         txtMonto.getDocument().addDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e) { listener.onCambio(); }
             public void removeUpdate(DocumentEvent e) { listener.onCambio(); }
@@ -67,6 +86,13 @@ public class FilaMontoPanel extends JPanel {
 
         add(pnlLeft);
         add(txtMonto);
+    }
+
+
+    public void setDatos(String metodo, String monto) {
+        this.metodoAnterior = metodo;
+        this.cbMetodo.setSelectedItem(metodo);
+        this.txtMonto.setText(monto);
     }
 
     public double getMonto() {

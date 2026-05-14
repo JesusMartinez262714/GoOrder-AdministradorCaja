@@ -1,6 +1,7 @@
 package AdministradorCajaPresentacion.GUI;
 
 import AdministradorCajaDTOs.cajeroDTO;
+import AdministradorCajaDTOs.corteCajaDTO;
 import AdministradorCajaDTOs.desgloseDTO;
 import AdministradorCajaPresentacion.Control.Control;
 
@@ -21,6 +22,7 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
     private JTextField txtSupervisor;
     private JLabel lblTotalManualBadge, lblFaltanteBadge, lblPreviewImagen;
     private String rutaImagenSeleccionada = "";
+    private Integer idCorteEditando = null; // Para saber si estamos creando o editando
 
     private final Color COLOR_FONDO = new Color(34, 34, 34);
     private final Color COLOR_TEXTO = new Color(240, 240, 240);
@@ -83,8 +85,8 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
 
         cmbEmpleados = new JComboBox<>();
         cmbEmpleados.addActionListener(e -> {
-            calcularTotales();
             actualizarSupervisor();
+            calcularTotales();
         });
         pnlPrincipal.add(crearFilaPildora("Empleado:", cmbEmpleados));
         pnlPrincipal.add(Box.createRigidArea(new Dimension(0, 25)));
@@ -225,7 +227,6 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         pnlFooter.add(pnlBtnVerificarWrap, BorderLayout.EAST);
 
         pnlPrincipal.add(pnlFooter);
-
         add(new JScrollPane(pnlPrincipal), BorderLayout.CENTER);
     }
 
@@ -248,12 +249,9 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         comp.setFont(new Font("Segoe UI", Font.BOLD, 14));
         comp.setForeground(Color.BLACK);
 
-        if (comp instanceof JComboBox) {
-            comp.setBackground(Color.WHITE);
-        }
+        if (comp instanceof JComboBox) comp.setBackground(Color.WHITE);
 
         pill.add(comp, BorderLayout.CENTER);
-
         p.add(l, BorderLayout.WEST);
         p.add(pill, BorderLayout.CENTER);
         return p;
@@ -261,9 +259,7 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
 
     private void agregarFila() {
         if (pnlContenedorFilas.getComponentCount() >= 4) return;
-
-        FilaMontoPanel fila = new FilaMontoPanel(this); // Instanciamos la clase externa
-        pnlContenedorFilas.add(fila);
+        pnlContenedorFilas.add(new FilaMontoPanel(this));
         pnlContenedorFilas.revalidate();
         calcularTotales();
     }
@@ -284,125 +280,121 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
             rutaImagenSeleccionada = file.getAbsolutePath();
-            ImageIcon icon = new ImageIcon(new ImageIcon(rutaImagenSeleccionada).getImage().getScaledInstance(150, 100, Image.SCALE_SMOOTH));
-            lblPreviewImagen.setIcon(icon);
+            lblPreviewImagen.setIcon(new ImageIcon(new ImageIcon(rutaImagenSeleccionada).getImage().getScaledInstance(150, 100, Image.SCALE_SMOOTH)));
         }
     }
 
     private void actualizarSupervisor() {
         cajeroDTO emp = (cajeroDTO) cmbEmpleados.getSelectedItem();
-        if (emp != null && control != null) {
-            String nombreSupervisor = control.obtenerNombreSupervisorAsociado(emp.getIdCajero());
-            txtSupervisor.setText(nombreSupervisor);
-        } else {
-            txtSupervisor.setText("---");
-        }
+        txtSupervisor.setText((emp != null) ? control.obtenerNombreSupervisorAsociado(emp.getIdCajero()) : "---");
     }
 
     public void calcularTotales() {
         double total = 0;
         for (Component c : pnlContenedorFilas.getComponents()) {
-            if (c instanceof FilaMontoPanel) {
-                total += ((FilaMontoPanel) c).getMonto();
-            }
+            if (c instanceof FilaMontoPanel) total += ((FilaMontoPanel) c).getMonto();
         }
         lblTotalManualBadge.setText(String.format("$%.0f", total));
 
-        cajeroDTO emp = null;
-        if(cmbEmpleados.getSelectedItem() != null) {
-            emp = (cajeroDTO) cmbEmpleados.getSelectedItem();
-        }
-
+        cajeroDTO emp = (cajeroDTO) cmbEmpleados.getSelectedItem();
         if (emp != null) {
             double esperado = control.obtenerMontoEsperado(emp.getIdCajero());
-            double faltante = esperado - total;
-            lblFaltanteBadge.setText(String.format("$%.0f", Math.max(0, faltante)));
+            lblFaltanteBadge.setText(String.format("$%.0f", Math.max(0, esperado - total)));
+        } else {
+            lblFaltanteBadge.setText("$0");
         }
     }
 
     private void realizarCorte() {
         double totalContado = 0;
         List<desgloseDTO> desgloses = new ArrayList<>();
-
         for (Component c : pnlContenedorFilas.getComponents()) {
             if (c instanceof FilaMontoPanel) {
                 FilaMontoPanel f = (FilaMontoPanel) c;
-
-                if (f.getMetodo().equals("")) {
-                    JOptionPane.showMessageDialog(this, "Por favor, selecciona un método de pago en todas las filas antes de verificar.", "Método Faltante", JOptionPane.WARNING_MESSAGE);
+                if (f.getMetodo().trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Selecciona un método en todas las filas.", "Faltante", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
-
                 if (f.getMonto() < 0) {
-                    JOptionPane.showMessageDialog(this, "Por favor, corrige los montos en rojo antes de verificar.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Corrige los montos en rojo.", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
                 totalContado += f.getMonto();
                 desgloses.add(new desgloseDTO(f.getMonto(), 0, f.getMetodo()));
             }
         }
-
-        if (totalContado == 0) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "No has ingresado ningún monto.\nPor favor, ingresa las cantidades físicas en caja para poder proceder con el corte.",
-                    "Corte Vacío",
-                    JOptionPane.WARNING_MESSAGE
-            );
+        if (totalContado == 0 && desgloses.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No hay montos físicos.", "Vacío", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
         cajeroDTO emp = (cajeroDTO) cmbEmpleados.getSelectedItem();
         if (emp != null) {
-            double esperado = control.obtenerMontoEsperado(emp.getIdCajero());
-            control.mostrarConciliacionFinal(esperado, totalContado, emp, desgloses, rutaImagenSeleccionada);
-        } else {
-            JOptionPane.showMessageDialog(this, "Por favor selecciona un empleado.");
+            if(idCorteEditando != null){
+                control.eliminarCorte(idCorteEditando);
+            }
+            control.mostrarConciliacionFinal(control.obtenerMontoEsperado(emp.getIdCajero()), totalContado, emp, desgloses, rutaImagenSeleccionada);
         }
     }
 
     public void cargarEmpleados(List<cajeroDTO> empleados) {
         cmbEmpleados.removeAllItems();
-        if (empleados != null) {
-            for (cajeroDTO emp : empleados) {
-                cmbEmpleados.addItem(emp);
-            }
-        }
+        if (empleados != null) for (cajeroDTO emp : empleados) cmbEmpleados.addItem(emp);
         actualizarSupervisor();
+        calcularTotales();
     }
 
     public void limpiarFormulario() {
+        this.idCorteEditando = null;
         pnlContenedorFilas.removeAll();
         rutaImagenSeleccionada = "";
         lblPreviewImagen.setIcon(null);
-
-        if (cmbEmpleados.getItemCount() > 0) {
-            cmbEmpleados.setSelectedIndex(0);
-        }
+        if (cmbEmpleados.getItemCount() > 0) cmbEmpleados.setSelectedIndex(0);
         txtSupervisor.setText("---");
+        lblTotalManualBadge.setText("$0");
+        lblFaltanteBadge.setText("$0");
         agregarFila();
     }
 
 
-    @Override
-    public void onCambio() {
+    public void cargarCorteParaEdicion(corteCajaDTO corte) {
+        limpiarFormulario();
+        this.idCorteEditando = corte.getId();
+
+        for (int i = 0; i < cmbEmpleados.getItemCount(); i++) {
+            if (cmbEmpleados.getItemAt(i).getIdCajero() == corte.getIdCajero()) {
+                cmbEmpleados.setSelectedIndex(i);
+                break;
+            }
+        }
+
+        pnlContenedorFilas.removeAll();
+
+
+        if (corte.getListaDesglose() != null && !corte.getListaDesglose().isEmpty()) {
+            for (desgloseDTO d : corte.getListaDesglose()) {
+                if (pnlContenedorFilas.getComponentCount() < 4) {
+                    FilaMontoPanel fila = new FilaMontoPanel(this);
+                    fila.setDatos(d.getNombreMetodo(), String.valueOf(d.getMontoDeclarado()));
+                    pnlContenedorFilas.add(fila);
+                }
+            }
+        } else {
+            agregarFila();
+        }
+
+        pnlContenedorFilas.revalidate();
+        pnlContenedorFilas.repaint();
         calcularTotales();
     }
 
-    @Override
-    public boolean verificarDuplicado(String metodo, FilaMontoPanel origen) {
-        // Verificamos si otra fila (que no sea la que está preguntando) ya tiene el método
+    @Override public void onCambio() { calcularTotales(); }
+
+    @Override public boolean verificarDuplicado(String metodo, FilaMontoPanel origen) {
         for (Component c : pnlContenedorFilas.getComponents()) {
-            if (c instanceof FilaMontoPanel && c != origen) {
-                if (((FilaMontoPanel) c).getMetodo().equals(metodo)) {
-                    return true;
-                }
-            }
+            if (c instanceof FilaMontoPanel && c != origen && ((FilaMontoPanel) c).getMetodo().equals(metodo)) return true;
         }
         return false;
     }
-
-    // --- COMPONENTES VISUALES ---
 
     class RoundedPanel extends JPanel {
         private int radius;
@@ -413,8 +405,7 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
             setOpaque(false);
             setLayout(new BorderLayout());
         }
-        @Override
-        protected void paintComponent(Graphics g) {
+        @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(bgColor);
@@ -428,8 +419,6 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         private int radius;
         private Color bgColor;
         private String customText;
-        private String htmlText = null;
-
         public RoundedButton(String text, int radius, Color bgColor, Color fgColor) {
             super("");
             this.customText = text;
@@ -440,36 +429,22 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
             setContentAreaFilled(false);
             setBorderPainted(false);
             setCursor(new Cursor(Cursor.HAND_CURSOR));
-            setMargin(new Insets(0, 0, 0, 0));
         }
-
         public void setTextHtml(String html) {
-            this.htmlText = html;
             super.setText(html);
             this.customText = null;
         }
-
-        @Override
-        protected void paintComponent(Graphics g) {
+        @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            if (getModel().isPressed()) {
-                g2.setColor(bgColor.darker());
-            } else {
-                g2.setColor(bgColor);
-            }
+            g2.setColor(getModel().isPressed() ? bgColor.darker() : bgColor);
             g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), radius, radius));
-
             if (customText != null) {
                 g2.setColor(getForeground());
                 g2.setFont(getFont());
                 FontMetrics fm = g2.getFontMetrics();
-                int x = (getWidth() - fm.stringWidth(customText)) / 2;
-                int y = ((getHeight() - fm.getHeight()) / 2) + fm.getAscent();
-                g2.drawString(customText, x, y);
+                g2.drawString(customText, (getWidth() - fm.stringWidth(customText)) / 2, ((getHeight() - fm.getHeight()) / 2) + fm.getAscent());
             }
-
             g2.dispose();
             super.paintComponent(g);
         }

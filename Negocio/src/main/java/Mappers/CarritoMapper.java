@@ -1,5 +1,9 @@
 package Mappers;
 
+import DTOs.CarritoDTO;
+import DTOs.ProductoDTO;
+import DTOs.ProductoSeleccionadoDTO;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,7 +12,7 @@ public class CarritoMapper {
     /**
      * Convierte de Persistencia a Negocio
      */
-    public static GoOrderDTO.CarritoDTO toNegocio(DTOs.CarritoDTO cP) {
+    public static GoOrderDTO.CarritoDTO toNegocio(CarritoDTO cP) {
         if (cP == null) return null;
 
         GoOrderDTO.CarritoDTO cN = new GoOrderDTO.CarritoDTO();
@@ -19,7 +23,7 @@ public class CarritoMapper {
         if (cP.getProductos() != null) {
             List<GoOrderDTO.ProductoSeleccionadoDTO> productosN = new ArrayList<>();
 
-            for (DTOs.ProductoSeleccionadoDTO pP : cP.getProductos()) {
+            for (ProductoSeleccionadoDTO pP : cP.getProductos()) {
                 GoOrderDTO.ProductoSeleccionadoDTO pN = new GoOrderDTO.ProductoSeleccionadoDTO();
                 pN.setNombre(pP.getNombre());
                 pN.setCantidad(pP.getCantidad());
@@ -47,19 +51,19 @@ public class CarritoMapper {
     /**
      * Convierte de Negocio a Persistencia
      */
-    public static DTOs.CarritoDTO toPersistencia(GoOrderDTO.CarritoDTO cN) {
+    public static CarritoDTO toPersistencia(GoOrderDTO.CarritoDTO cN) {
         if (cN == null) return null;
 
-        DTOs.CarritoDTO cP = new DTOs.CarritoDTO();
+        CarritoDTO cP = new CarritoDTO();
         cP.setSubTotal(cN.getSubTotal());
         cP.setDescuento(cN.getDescuento());
         cP.setTotal(cN.getTotal());
 
         if (cN.getProductos() != null) {
-            List<DTOs.ProductoSeleccionadoDTO> productosP = new ArrayList<>();
+            List<ProductoSeleccionadoDTO> productosP = new ArrayList<>();
 
             for (GoOrderDTO.ProductoSeleccionadoDTO pN : cN.getProductos()) {
-                DTOs.ProductoSeleccionadoDTO pP = new DTOs.ProductoSeleccionadoDTO();
+                ProductoSeleccionadoDTO pP = new ProductoSeleccionadoDTO();
                 pP.setNombre(pN.getNombre());
                 pP.setCantidad(pN.getCantidad());
                 pP.setImporte(pN.getImporte());
@@ -67,7 +71,7 @@ public class CarritoMapper {
 
                 if (pN.getProducto() != null) {
 
-                    DTOs.ProductoDTO productoInternoP = new DTOs.ProductoDTO(
+                    ProductoDTO productoInternoP = new ProductoDTO(
                             pN.getProducto().getNombre(),
                             pN.getProducto().getDescripcion(),
                             pN.getProducto().getPrecio(),
