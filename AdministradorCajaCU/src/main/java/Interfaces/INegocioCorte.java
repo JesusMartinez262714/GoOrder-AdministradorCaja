@@ -36,4 +36,6 @@ public interface INegocioCorte {
     boolean eliminarCorteFisico(int idCorte);
 
     boolean cancelarCorteLogico(int idCorte);
+
+    boolean liquidarAdeudo(int idCajero, double montoPagado);
 }

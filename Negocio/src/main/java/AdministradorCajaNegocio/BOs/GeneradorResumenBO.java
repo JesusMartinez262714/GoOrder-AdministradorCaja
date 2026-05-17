@@ -12,21 +12,20 @@ import java.util.List;
 
 public class GeneradorResumenBO implements IGeneradorResumenBO {
 
-    private IVentaDAO miVentaDAO;
+    private final IVentaDAO miVentaDAO;
 
     public GeneradorResumenBO(IVentaDAO ventaDAO) {
         this.miVentaDAO = ventaDAO;
     }
 
     @Override
-    public resumenVentasDTO generarResumenVentasTurno(int idCajero, Date fechaActual) {
-        List<ventaDTO> ventas = extraerVentasPorCajero(idCajero, fechaActual);
-        return calcularTotalesPorMetodo(ventas);
+    public resumenVentasDTO generarResumenVentasTurno(int idCajero, Date fechaApertura) {
+        return calcularTotalesPorMetodo(extraerVentasPorCajero(idCajero, fechaApertura));
     }
 
     @Override
-    public List<ventaDTO> extraerVentasPorCajero(int idCajero, Date fechaActual) {
-        List<venta> entidades = miVentaDAO.obtenerVentas(idCajero, fechaActual);
+    public List<ventaDTO> extraerVentasPorCajero(int idCajero, Date fechaApertura) {
+        List<venta> entidades = miVentaDAO.obtenerVentas(idCajero, fechaApertura);
         List<ventaDTO> dtos = new ArrayList<>();
         if (entidades != null) {
             for (venta v : entidades) {
@@ -42,14 +41,13 @@ public class GeneradorResumenBO implements IGeneradorResumenBO {
         if (listaVentas != null) {
             for (ventaDTO v : listaVentas) {
                 switch (v.getIdMetodoPago()) {
-                    case 1: efectivo += v.getMontoTotal(); break;
-                    case 2: tarjeta += v.getMontoTotal(); break;
-                    case 3: app += v.getMontoTotal(); break;
-                    case 4: referencia += v.getMontoTotal(); break;
+                    case 1 -> efectivo += v.getMontoTotal();
+                    case 2 -> tarjeta += v.getMontoTotal();
+                    case 3 -> app += v.getMontoTotal();
+                    case 4 -> referencia += v.getMontoTotal();
                 }
             }
         }
-        double totalEsperado = efectivo + tarjeta + app + referencia;
-        return new resumenVentasDTO(efectivo, tarjeta, app, referencia, totalEsperado);
+        return new resumenVentasDTO(efectivo, tarjeta, app, referencia, efectivo + tarjeta + app + referencia);
     }
 }

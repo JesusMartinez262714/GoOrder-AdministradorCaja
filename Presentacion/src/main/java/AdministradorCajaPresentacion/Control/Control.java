@@ -121,8 +121,6 @@ public class Control {
         pantallaResumen.actualizarMontos(r, seleccionado, nombreSupervisorActivo);
     }
 
-
-
     public void mostrarFormularioCorte() {
         if (pantallaFormulario == null) pantallaFormulario = new FormularioCorte(this);
         else pantallaFormulario.limpiarFormulario();
@@ -163,14 +161,19 @@ public class Control {
         dto.setListaDesglose(des);
 
         if (fachadaNegocio.guardarNuevoCorte(dto, des)) {
-            JOptionPane.showMessageDialog(null, "¡Corte guardado exitosamente!");
+            if (diff < 0) {
+                JOptionPane.showMessageDialog(null,
+                        "Corte cerrado.\nSe registró un adeudo faltante de $" + String.format("%,.2f", Math.abs(diff)) + " al cajero.",
+                        "Corte con Faltante", JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null, "¡Corte guardado exitosamente sin faltantes!");
+            }
+
             cajerosConTurnoAbierto.removeIf(c -> c.getIdCajero() == idC);
             mapaAsignacionIds.remove(idC);
             volverAResumen();
         }
     }
-
-
 
     public void mostrarHistorialCortes() {
         try {
@@ -190,7 +193,7 @@ public class Control {
         if (lista == null) return;
         switch (criterio) {
             case "Ascendente" -> lista.sort((c1, c2) -> Double.compare(c1.getMontoReal(), c2.getMontoReal()));
-            case "Descendente" -> lista.sort((c1, c2) -> Double.compare(c2.getMontoReal(), c1.getMontoReal()));
+            case "Descendente" -> lista.sort((c2, c1) -> Double.compare(c2.getMontoReal(), c1.getMontoReal()));
             case "Activos" -> lista.removeIf(c -> c.getEstado().equalsIgnoreCase("cancelado"));
             case "Cancelados" -> lista.removeIf(c -> !c.getEstado().equalsIgnoreCase("cancelado"));
         }
@@ -200,7 +203,7 @@ public class Control {
     public void eliminarCorte(int idCorte) {
         if (fachadaNegocio.eliminarCorteFisico(idCorte)) {
             JOptionPane.showMessageDialog(null, "El corte ha sido eliminado exitosamente de la base de datos.");
-            mostrarHistorialCortes(); // Recargamos el historial con los datos frescos
+            mostrarHistorialCortes();
         } else {
             JOptionPane.showMessageDialog(null, "Error al intentar eliminar el corte.", "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -209,7 +212,7 @@ public class Control {
     public void cancelarCorte(int idCorte) {
         if (fachadaNegocio.cancelarCorteLogico(idCorte)) {
             JOptionPane.showMessageDialog(null, "El corte ahora tiene estado 'Cancelado'.");
-            mostrarHistorialCortes(); // Recargamos el historial
+            mostrarHistorialCortes();
         } else {
             JOptionPane.showMessageDialog(null, "Error al intentar cancelar el corte.", "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -222,8 +225,6 @@ public class Control {
                         "Estado: " + corte.getEstado(),
                 "Reporte GoOrder", JOptionPane.INFORMATION_MESSAGE);
     }
-
-
 
     public void mostrarGestionCajeros() {
         if (pantallaGestionCajeros == null) pantallaGestionCajeros = new GestionCajeros(this);
@@ -255,6 +256,41 @@ public class Control {
 
     public void eliminarCajero(int id) {
         if (fachadaNegocio.eliminarCajero(id)) filtrarCajerosLista("", "Todos", "Todos");
+    }
+
+    public void procesarPagoAdeudo(int idCajero, double montoPagado) {
+        if (montoPagado <= 0) {
+            JOptionPane.showMessageDialog(null, "El monto ingresado debe ser mayor a cero.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        List<cajeroDTO> lista = fachadaNegocio.obtenerCajerosFiltrados("", "Todos", "Todos");
+        cajeroDTO cajero = null;
+        for (cajeroDTO c : lista) {
+            if (c.getIdCajero() == idCajero) {
+                cajero = c;
+                break;
+            }
+        }
+
+        if (cajero == null) return;
+
+        if (montoPagado > cajero.getMontoAdeudo()) {
+            JOptionPane.showMessageDialog(null, "No se puede realizar el pago: El monto ingresado supera el adeudo actual.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (fachadaNegocio.liquidarAdeudo(idCajero, montoPagado)) {
+            double saldoRestante = cajero.getMontoAdeudo() - montoPagado;
+            if (saldoRestante > 0) {
+                JOptionPane.showMessageDialog(null, "Abono registrado con éxito. Cantidad faltante: $" + String.format("%,.2f", saldoRestante), "Pago Registrado", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null, "El adeudo ha sido liquidado por completo. El cajero se encuentra al corriente.", "Adeudo Liquidado", JOptionPane.INFORMATION_MESSAGE);
+            }
+            filtrarCajerosLista("", "Todos", "Todos");
+        } else {
+            JOptionPane.showMessageDialog(null, "Ocurrió un error al procesar el pago del adeudo en el sistema.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     public void mostrarGestionSupervisores() {

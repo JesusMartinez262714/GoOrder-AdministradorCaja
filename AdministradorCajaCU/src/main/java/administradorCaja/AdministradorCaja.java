@@ -8,7 +8,6 @@ import AdministradorCajaPersistencia.Entitys.supervisor;
 import AdministradorCajaPersistencia.Interfaces.*;
 import Interfaces.INegocioCorte;
 
-import javax.swing.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -21,6 +20,7 @@ public class AdministradorCaja implements INegocioCorte {
     private IGestionSupervisoresBO gestionSupervisoresBO;
     private ICorteCajaBO corteCajaBO;
     private IAperturaBO aperturaBO;
+    private adeudoBO adeudoBO;
 
     private IAperturaCajaDAO aperturaDAO;
     private ISupervisorDAO supervisorDAO;
@@ -35,13 +35,12 @@ public class AdministradorCaja implements INegocioCorte {
         this.aperturaBO = new aperturaBO(aDAO);
         this.gestionCajerosBO = new GestionCajerosBO(cajDAO, adeDAO);
         this.gestionSupervisoresBO = new GestionSupervisoresBO(supDAO);
+        this.adeudoBO = new adeudoBO(adeDAO);
 
         this.aperturaDAO = aDAO;
         this.supervisorDAO = supDAO;
         this.corteCajaDAO = cDAO;
     }
-
-
 
     @Override
     public List<cajeroDTO> obtenerCajerosFiltrados(String n, String t, String d) {
@@ -49,25 +48,28 @@ public class AdministradorCaja implements INegocioCorte {
     }
 
     @Override
-    public boolean registrarCajero(cajeroDTO dto) { return gestionCajerosBO.registrarCajero(dto); }
+    public boolean registrarCajero(cajeroDTO dto) {
+        return gestionCajerosBO.registrarCajero(dto);
+    }
 
     @Override
-    public boolean editarCajero(cajeroDTO dto) { return gestionCajerosBO.editarCajero(dto); }
+    public boolean editarCajero(cajeroDTO dto) {
+        return gestionCajerosBO.editarCajero(dto);
+    }
 
     @Override
-    public boolean eliminarCajero(int idCajero) { return gestionCajerosBO.eliminarCajero(idCajero); }
+    public boolean eliminarCajero(int idCajero) {
+        return gestionCajerosBO.eliminarCajero(idCajero);
+    }
 
     @Override
-    public List<cajeroDTO> consultarCajeros() { return obtenerCajerosFiltrados("", "Todos", "Todos"); }
-
-
+    public List<cajeroDTO> consultarCajeros() {
+        return obtenerCajerosFiltrados("", "Todos", "Todos");
+    }
 
     @Override
     public boolean registrarApertura(aperturaCajaDTO apertura) {
         if (aperturaDAO.tieneAperturaActiva(apertura.getIdCajero())) {
-            JOptionPane.showMessageDialog(null,
-                    "El cajero ya tiene un turno activo.\nDebe cerrarlo antes de abrir uno nuevo.",
-                    "Caja ya abierta", JOptionPane.WARNING_MESSAGE);
             return false;
         }
         return aperturaBO.registrarFondolnicial(apertura);
@@ -89,8 +91,6 @@ public class AdministradorCaja implements INegocioCorte {
         return (apertura != null) ? apertura.getIdSupervisor() : null;
     }
 
-
-
     @Override
     public String obtenerNombreSupervisorPorId(int idSupervisor) {
         supervisor entidad = supervisorDAO.consultarPorId(idSupervisor);
@@ -98,25 +98,35 @@ public class AdministradorCaja implements INegocioCorte {
     }
 
     @Override
-    public List<supervisorDTO> consultarSupervisores() { return gestionSupervisoresBO.obtenerTodosLosSupervisores(""); }
+    public List<supervisorDTO> consultarSupervisores() {
+        return gestionSupervisoresBO.obtenerTodosLosSupervisores("");
+    }
 
     @Override
-    public List<supervisorDTO> obtenerSupervisoresFiltrados(String nombre) { return gestionSupervisoresBO.obtenerSupervisoresFiltrados(nombre); }
+    public List<supervisorDTO> obtenerSupervisoresFiltrados(String nombre) {
+        return gestionSupervisoresBO.obtenerSupervisoresFiltrados(nombre);
+    }
 
     @Override
-    public boolean registrarSupervisor(supervisorDTO dto) { return gestionSupervisoresBO.registrarSupervisor(dto); }
+    public boolean registrarSupervisor(supervisorDTO dto) {
+        return gestionSupervisoresBO.registrarSupervisor(dto);
+    }
 
     @Override
-    public boolean editarSupervisor(supervisorDTO dto) { return gestionSupervisoresBO.editarSupervisor(dto); }
+    public boolean editarSupervisor(supervisorDTO dto) {
+        return gestionSupervisoresBO.editarSupervisor(dto);
+    }
 
     @Override
-    public boolean eliminarSupervisor(int idSupervisor) { return gestionSupervisoresBO.eliminarSupervisor(idSupervisor); }
-
-
+    public boolean eliminarSupervisor(int idSupervisor) {
+        return gestionSupervisoresBO.eliminarSupervisor(idSupervisor);
+    }
 
     @Override
     public resumenVentasDTO generarResumenVentasTurno(int idCajero, Date fechaActual) {
-        return generadorResumenBO.generarResumenVentasTurno(idCajero, fechaActual);
+        aperturaCaja apertura = aperturaDAO.consultarUltimaApertura(idCajero);
+        Date fechaInicio = (apertura != null) ? apertura.getFechaHora() : fechaActual;
+        return generadorResumenBO.generarResumenVentasTurno(idCajero, fechaInicio);
     }
 
     @Override
@@ -124,7 +134,6 @@ public class AdministradorCaja implements INegocioCorte {
         resumenVentasDTO resumen = generarResumenVentasTurno(idEmpleado, new Date());
         return (resumen != null) ? resumen.getTotalEsperadoSistema() : 0.0;
     }
-
 
     @Override
     public double calcularDiferencia(double totalEsperado, double totalReal) {
@@ -147,6 +156,11 @@ public class AdministradorCaja implements INegocioCorte {
 
         if (guardado) {
             aperturaDAO.vincularCorteAApertura(datosCorte.getIdApertura(), 1);
+
+            if (datosCorte.getDiferencia() < 0) {
+                double faltante = Math.abs(datosCorte.getDiferencia());
+                adeudoBO.registrarAdeudoFaltante(datosCorte.getIdCajero(), faltante);
+            }
         }
 
         return guardado;
@@ -175,5 +189,10 @@ public class AdministradorCaja implements INegocioCorte {
     @Override
     public boolean cancelarCorteLogico(int idCorte) {
         return corteCajaDAO.actualizarEstadoCorte(idCorte, "Cancelado");
+    }
+
+    @Override
+    public boolean liquidarAdeudo(int idCajero, double montoPagado) {
+        return adeudoBO.liquidarAdeudo(idCajero, montoPagado);
     }
 }

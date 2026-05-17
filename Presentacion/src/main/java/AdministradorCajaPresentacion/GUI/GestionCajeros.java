@@ -27,6 +27,7 @@ public class GestionCajeros extends JFrame {
     private final Color COLOR_TEXTO = Color.WHITE;
     private final Color COLOR_ROJO = new Color(255, 107, 107);
     private final Color COLOR_GRIS = new Color(150, 150, 150);
+    private final Color COLOR_PAGO = new Color(52, 152, 219);
 
     public GestionCajeros(Control control) {
         this.control = control;
@@ -44,7 +45,6 @@ public class GestionCajeros extends JFrame {
 
     private void initComponents() {
         setLayout(new BorderLayout());
-
 
         JPanel pnlSidebar = new JPanel();
         pnlSidebar.setBackground(COLOR_SIDEBAR);
@@ -66,7 +66,7 @@ public class GestionCajeros extends JFrame {
         JButton btnAperturaCaja = new BotonRedondeado("AperturaCaja", false);
         btnAperturaCaja.addActionListener(e -> control.mostrarAperturaCaja());
 
-        JButton btnGestionCajeros = new BotonRedondeado("GestionCajeros", true); // ACTIVO
+        JButton btnGestionCajeros = new BotonRedondeado("GestionCajeros", true);
 
         JButton btnGestionSupervisores = new BotonRedondeado("Supervisores", false);
         btnGestionSupervisores.addActionListener(e -> control.mostrarGestionSupervisores());
@@ -81,7 +81,6 @@ public class GestionCajeros extends JFrame {
         pnlSidebar.add(Box.createVerticalGlue());
 
         add(pnlSidebar, BorderLayout.WEST);
-
 
         JPanel pnlMain = new JPanel(new BorderLayout());
         pnlMain.setBackground(COLOR_FONDO);
@@ -178,9 +177,7 @@ public class GestionCajeros extends JFrame {
 
         JButton btnAgregar = new BotonAccion("+ AGREGAR CAJERO", COLOR_ACCENTO, Color.BLACK);
         btnAgregar.setPreferredSize(new Dimension(180, 45));
-        btnAgregar.addActionListener(e -> {
-            new FormularioCajero(this, control, null).setVisible(true);
-        });
+        btnAgregar.addActionListener(e -> new FormularioCajero(this, control, null).setVisible(true));
 
         pnlFooter.add(btnAgregar);
         pnlMain.add(pnlFooter, BorderLayout.SOUTH);
@@ -199,7 +196,6 @@ public class GestionCajeros extends JFrame {
         pnlListaTarjetas.revalidate();
         pnlListaTarjetas.repaint();
     }
-
 
     class CardCajero extends JPanel {
         public CardCajero(cajeroDTO c) {
@@ -220,7 +216,9 @@ public class GestionCajeros extends JFrame {
 
             JPanel pnlStatus = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 10));
             pnlStatus.setOpaque(false);
-            JLabel lblPill = new JLabel(c.isTieneAdeudo() ? "Con Adeudo" : "Al Corriente", SwingConstants.CENTER) {
+
+            String textoBadge = c.isTieneAdeudo() ? "Debe: $" + String.format("%,.2f", c.getMontoAdeudo()) : "Al Corriente";
+            JLabel lblPill = new JLabel(textoBadge, SwingConstants.CENTER) {
                 @Override
                 protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g.create();
@@ -231,7 +229,7 @@ public class GestionCajeros extends JFrame {
                     super.paintComponent(g);
                 }
             };
-            lblPill.setPreferredSize(new Dimension(100, 25));
+            lblPill.setPreferredSize(new Dimension(140, 25));
             lblPill.setForeground(c.isTieneAdeudo() ? Color.WHITE : Color.BLACK);
             lblPill.setFont(new Font("Segoe UI", Font.BOLD, 12));
             pnlStatus.add(lblPill);
@@ -239,11 +237,26 @@ public class GestionCajeros extends JFrame {
             JPanel pnlAcciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
             pnlAcciones.setOpaque(false);
 
+            if (c.isTieneAdeudo()) {
+                JButton btnPagar = new BotonAccion("Pagar", COLOR_PAGO, Color.WHITE);
+                btnPagar.addActionListener(e -> {
+                    String input = JOptionPane.showInputDialog(GestionCajeros.this,
+                            "Monto a abonar/pagar (Adeudo actual: $" + String.format("%,.2f", c.getMontoAdeudo()) + "):",
+                            "Registrar Pago de Adeudo", JOptionPane.QUESTION_MESSAGE);
+                    if (input != null && !input.trim().isEmpty()) {
+                        try {
+                            double monto = Double.parseDouble(input);
+                            control.procesarPagoAdeudo(c.getIdCajero(), monto);
+                        } catch (NumberFormatException ex) {
+                            JOptionPane.showMessageDialog(GestionCajeros.this, "Por favor ingrese un monto numérico válido.", "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                });
+                pnlAcciones.add(btnPagar);
+            }
+
             JButton btnEditar = new BotonAccion("Editar", COLOR_SIDEBAR, COLOR_TEXTO);
-            btnEditar.addActionListener(e -> {
-                // USO DEL FORMULARIO UNIFICADO (c = modo edición)
-                new FormularioCajero(GestionCajeros.this, control, c).setVisible(true);
-            });
+            btnEditar.addActionListener(e -> new FormularioCajero(GestionCajeros.this, control, c).setVisible(true));
 
             JButton btnEliminar = new BotonAccion("Eliminar", COLOR_SIDEBAR, COLOR_ROJO);
             btnEliminar.addActionListener(e -> {
