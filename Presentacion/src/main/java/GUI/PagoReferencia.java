@@ -113,23 +113,16 @@ public class PagoReferencia extends JFrame {
 
         btnPagar.addActionListener(e -> {
             try {
-                boolean pagoExitoso = control.intentarPago(txtReferencia.getText(), control.getCarrito().getTotal());
-
+                boolean pagoExitoso = control.intentarPago(4, txtReferencia.getText(), control.getCarrito().getTotal());
                 if (pagoExitoso) {
-                    JOptionPane.showMessageDialog(this, 
-                        "¡Pago aprobado con éxito! Tu pedido está confirmado.", 
-                        "Transacción Exitosa", 
-                        JOptionPane.INFORMATION_MESSAGE);
-                        control.mostrarAgradecimiento();
-                        control.limpiarCarrito();
+                    JOptionPane.showMessageDialog(this, "¡Pago aprobado con éxito! Tu pedido está confirmado.", "Transacción Exitosa", JOptionPane.INFORMATION_MESSAGE);
+                    control.mostrarAgradecimiento();
+                    control.limpiarCarrito();
                 } else {
-                    JOptionPane.showMessageDialog(this, 
-                        "El pago fue rechazado. Verifica el código o tus fondos.", 
-                        "Transacción Declinada", 
-                        JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "El pago fue rechazado. Verifica el código o tus fondos.", "Transacción Declinada", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (Exception ex) {
-                System.getLogger(PagoReferencia.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+                JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 

@@ -39,4 +39,6 @@ public interface IRealizarPedidoCUE {
     public CodigoDescuentoDTO cambiarEstadoDescuento(String codigo)throws NegocioException;
     
     public boolean finalizarCompra(String cuentaCliente, double totalAPagar) throws NegocioException;
+
+    void registrarVentaBaseDatos(int idCajero, double montoTotal, int idMetodoPago) throws NegocioException;
 }

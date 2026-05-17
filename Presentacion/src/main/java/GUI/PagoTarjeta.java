@@ -122,28 +122,18 @@ public class PagoTarjeta extends JFrame {
 
         btnPagar.addActionListener(e -> {
             try {
-                
-                boolean pagoExitoso = control.intentarPago(txtNumeroTarjeta.getText(), control.getCarrito().getTotal());
-                
-
+                boolean pagoExitoso = control.intentarPago(2, txtNumeroTarjeta.getText(), control.getCarrito().getTotal());
                 if (pagoExitoso) {
-                    JOptionPane.showMessageDialog(this, 
-                        "¡Pago aprobado con éxito! Tu pedido está confirmado.", 
-                        "Transacción Exitosa", 
-                        JOptionPane.INFORMATION_MESSAGE);
-                        control.mostrarAgradecimiento();
-                        control.limpiarCarrito();
+                    JOptionPane.showMessageDialog(this, "¡Pago aprobado con éxito! Tu pedido está confirmado.", "Transacción Exitosa", JOptionPane.INFORMATION_MESSAGE);
+                    control.mostrarAgradecimiento();
+                    control.limpiarCarrito();
                 } else {
-                    JOptionPane.showMessageDialog(this, 
-                        "El pago fue rechazado. Verifica el número o tus fondos.", 
-                        "Transacción Declinada", 
-                        JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "El pago fue rechazado. Verifica el número o tus fondos.", "Transacción Declinada", JOptionPane.ERROR_MESSAGE);
                 }
-                
-            } catch (NegocioException ex) {
-                System.getLogger(PagoTarjeta.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
-        } );
+        });
 
         footerPanel.add(btnPagar);
         add(footerPanel, BorderLayout.SOUTH);

@@ -11,7 +11,7 @@ import GoOrderDTO.ProductoSeleccionadoDTO;
  * @author
  */
 public class FactoriaPaneles {
-    
+
     /**
      * Y AQUÍ TENEMOS A LA FACTORY DE BLOQUES LOS CUAL
      * NOS DICE EN LA INTERFAZ QUE SERA UN BLOQUE(PANEL)
@@ -22,7 +22,7 @@ public class FactoriaPaneles {
      * AL FINAL CREAMOS ESOS BLOQUES EN SERIE EN BASE A LAS ESPECIFICACIONES
      * @param control
      * @param productoDescripcion
-     * @return 
+     * @return
      */
     public static IPaneles crearPanelProducto(Control control, ProductoDTO productoDescripcion) {
         return new ImplementacionPanel(control, productoDescripcion);
