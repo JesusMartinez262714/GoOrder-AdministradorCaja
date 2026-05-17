@@ -5,8 +5,10 @@ import AdministradorCajaPersistencia.DAOs.*;
 import AdministradorCajaPersistencia.Interfaces.*;
 import AdministradorCajaPresentacion.Control.Control;
 import Interfaces.INegocioCorte;
+import Interfaces.IVentaDAO;
 import administradorCaja.AdministradorCaja;
 import com.mongodb.client.MongoDatabase;
+import goorderpersistencia.ventaDAO;
 
 import javax.swing.*;
 

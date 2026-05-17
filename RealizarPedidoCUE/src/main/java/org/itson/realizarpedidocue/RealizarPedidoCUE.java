@@ -139,11 +139,13 @@ public class RealizarPedidoCUE implements IRealizarPedidoCUE {
     }
 
     @Override
-    public void registrarVentaBaseDatos(int idCajero, double montoTotal, int idMetodoPago) throws NegocioException {
+    public void registrarVentaBaseDatos(double montoTotal, int idMetodoPago) throws NegocioException {
         try {
+            int idCajeroActivo = ventaDAO.obtenerIdCajeroConCajaAbierta();
+
             venta nuevaVenta = new venta();
             nuevaVenta.setIdVenta((int) (System.currentTimeMillis() / 1000));
-            nuevaVenta.setIdCajero(idCajero);
+            nuevaVenta.setIdCajero(idCajeroActivo);
             nuevaVenta.setMontoTotal(montoTotal);
             nuevaVenta.setIdMetodoPago(idMetodoPago);
             nuevaVenta.setFecha(new Date());

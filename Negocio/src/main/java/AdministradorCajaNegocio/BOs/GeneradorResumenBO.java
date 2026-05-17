@@ -4,8 +4,9 @@ import AdministradorCajaDTOs.resumenVentasDTO;
 import AdministradorCajaDTOs.ventaDTO;
 import AdministradorCajaNegocio.Interfaces.IGeneradorResumenBO;
 import AdministradorCajaNegocio.Mappers.VentaMapper;
-import AdministradorCajaPersistencia.Entitys.venta;
-import AdministradorCajaPersistencia.Interfaces.IVentaDAO;
+import Entitys.venta;
+import Interfaces.IVentaDAO;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;

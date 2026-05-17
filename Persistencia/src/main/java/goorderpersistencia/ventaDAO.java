@@ -13,9 +13,11 @@ import java.util.List;
 
 public class ventaDAO implements IVentaDAO {
 
+    private final MongoDatabase database;
     private final MongoCollection<Document> coleccion;
 
     public ventaDAO(MongoDatabase database) {
+        this.database = database;
         this.coleccion = database.getCollection("ventas");
     }
 
@@ -40,6 +42,7 @@ public class ventaDAO implements IVentaDAO {
         }
         return ventas;
     }
+
     @Override
     public boolean insertarVenta(venta nuevaVenta) {
         try {
@@ -55,6 +58,23 @@ public class ventaDAO implements IVentaDAO {
             System.err.println("Error al insertar venta: " + e.getMessage());
             return false;
         }
+    }
+
+    @Override
+    public int obtenerIdCajeroConCajaAbierta() {
+        try {
+            MongoCollection<Document> collAperturas = database.getCollection("aperturas");
+            Document doc = collAperturas.find(Filters.eq("estado", "ABIERTA")).first();
+            if (doc == null) {
+                doc = collAperturas.find().sort(new Document("fechaHora", -1)).first();
+            }
+            if (doc != null) {
+                return doc.getInteger("idCajero");
+            }
+        } catch (Exception e) {
+            System.err.println("Error al buscar cajero activo: " + e.getMessage());
+        }
+        return 1;
     }
 
     private double obtenerDoubleSeguro(Document doc, String campo) {

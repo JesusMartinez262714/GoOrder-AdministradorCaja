@@ -122,7 +122,7 @@ public class PagoTarjeta extends JFrame {
 
         btnPagar.addActionListener(e -> {
             try {
-                boolean pagoExitoso = control.intentarPago(2, txtNumeroTarjeta.getText(), control.getCarrito().getTotal());
+                boolean pagoExitoso = control.intentarPago(3, txtNumeroTarjeta.getText(), control.getCarrito().getTotal());
                 if (pagoExitoso) {
                     JOptionPane.showMessageDialog(this, "¡Pago aprobado con éxito! Tu pedido está confirmado.", "Transacción Exitosa", JOptionPane.INFORMATION_MESSAGE);
                     control.mostrarAgradecimiento();

@@ -47,10 +47,7 @@ public class Control {
 
     private void cargarMenuProductos() {
     }
-    public List<ProductoDTO> obtenerListaProductos() {
-        return listaProductos;
-    }
-    
+
     public void agregarProducto(ProductoSeleccionadoDTO producto) throws NegocioException {
         realizarPedido.AgregarProductoCarrito(producto);
     }
@@ -98,10 +95,7 @@ public class Control {
         boolean pagoExitoso = realizarPedido.finalizarCompra(cuenta, totalAPagar);
 
         if (pagoExitoso) {
-
-            int idCajeroLogueado = 1;
-
-            realizarPedido.registrarVentaBaseDatos(idCajeroLogueado, totalAPagar, idMetodoPago);
+            realizarPedido.registrarVentaBaseDatos(totalAPagar, idMetodoPago);
         }
 
         return pagoExitoso;

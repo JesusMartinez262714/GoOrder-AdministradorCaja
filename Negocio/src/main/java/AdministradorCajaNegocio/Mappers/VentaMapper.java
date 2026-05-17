@@ -1,7 +1,7 @@
 package AdministradorCajaNegocio.Mappers;
 
 import AdministradorCajaDTOs.ventaDTO;
-import AdministradorCajaPersistencia.Entitys.venta;
+import Entitys.venta;
 
 public class VentaMapper {
     public static ventaDTO entityToDTO(venta entity) {

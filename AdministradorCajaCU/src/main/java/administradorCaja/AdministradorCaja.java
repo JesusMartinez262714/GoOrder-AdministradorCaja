@@ -7,6 +7,7 @@ import AdministradorCajaPersistencia.Entitys.aperturaCaja;
 import AdministradorCajaPersistencia.Entitys.supervisor;
 import AdministradorCajaPersistencia.Interfaces.*;
 import Interfaces.INegocioCorte;
+import Interfaces.IVentaDAO;
 
 import java.util.ArrayList;
 import java.util.Date;
