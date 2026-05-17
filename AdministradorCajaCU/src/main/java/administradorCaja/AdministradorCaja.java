@@ -3,11 +3,10 @@ package administradorCaja;
 import AdministradorCajaDTOs.*;
 import AdministradorCajaNegocio.BOs.*;
 import AdministradorCajaNegocio.Interfaces.*;
-import AdministradorCajaPersistencia.Entitys.aperturaCaja;
-import AdministradorCajaPersistencia.Entitys.supervisor;
 import AdministradorCajaPersistencia.Interfaces.*;
 import Interfaces.INegocioCorte;
 import Interfaces.IVentaDAO;
+import org.bson.Document;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -23,22 +22,19 @@ public class AdministradorCaja implements INegocioCorte {
     private IAperturaBO aperturaBO;
     private adeudoBO adeudoBO;
 
-    private IAperturaCajaDAO aperturaDAO;
     private ISupervisorDAO supervisorDAO;
     private ICorteCajaDAO corteCajaDAO;
 
     public AdministradorCaja(IVentaDAO vDAO, ICorteCajaDAO cDAO, IDesgloseMontosDAO dDAO,
-                             IAperturaCajaDAO aDAO, ICajeroDAO cajDAO, IAdeudoDAO adeDAO,
-                             ISupervisorDAO supDAO) {
+                             ICajeroDAO cajDAO, IAdeudoDAO adeDAO, ISupervisorDAO supDAO) {
 
         this.generadorResumenBO = new GeneradorResumenBO(vDAO);
         this.corteCajaBO = new corteCajaBO(cDAO, dDAO, cajDAO);
-        this.aperturaBO = new aperturaBO(aDAO);
+        this.aperturaBO = new aperturaBO(cDAO); // <- Corregido: Ahora le pasamos cDAO
         this.gestionCajerosBO = new GestionCajerosBO(cajDAO, adeDAO);
         this.gestionSupervisoresBO = new GestionSupervisoresBO(supDAO);
         this.adeudoBO = new adeudoBO(adeDAO);
 
-        this.aperturaDAO = aDAO;
         this.supervisorDAO = supDAO;
         this.corteCajaDAO = cDAO;
     }
@@ -70,7 +66,7 @@ public class AdministradorCaja implements INegocioCorte {
 
     @Override
     public boolean registrarApertura(aperturaCajaDTO apertura) {
-        if (aperturaDAO.tieneAperturaActiva(apertura.getIdCajero())) {
+        if (corteCajaDAO.tieneAperturaActiva(apertura.getIdCajero())) {
             return false;
         }
         return aperturaBO.registrarFondolnicial(apertura);
@@ -78,7 +74,7 @@ public class AdministradorCaja implements INegocioCorte {
 
     @Override
     public List<cajeroDTO> consultarCajerosConTurnoActivo() {
-        List<Integer> idsActivos = aperturaDAO.obtenerIdsCajerosConCajaAbierta();
+        List<Integer> idsActivos = corteCajaDAO.obtenerIdsCajerosConCajaAbierta();
         if (idsActivos == null || idsActivos.isEmpty()) return new ArrayList<>();
 
         return consultarCajeros().stream()
@@ -88,13 +84,14 @@ public class AdministradorCaja implements INegocioCorte {
 
     @Override
     public Integer obtenerIdSupervisorDeAperturaActiva(int idCajero) {
-        aperturaCaja apertura = aperturaDAO.consultarUltimaApertura(idCajero);
-        return (apertura != null) ? apertura.getIdSupervisor() : null;
+        Document caja = corteCajaDAO.consultarUltimaCaja(idCajero);
+        return (caja != null) ? caja.getInteger("idSupervisor") : null;
     }
 
     @Override
     public String obtenerNombreSupervisorPorId(int idSupervisor) {
-        supervisor entidad = supervisorDAO.consultarPorId(idSupervisor);
+        // Este se queda igual, usa su propio DAO
+        var entidad = supervisorDAO.consultarPorId(idSupervisor);
         return (entidad != null) ? entidad.getNombreCompleto() : "No encontrado";
     }
 
@@ -125,8 +122,8 @@ public class AdministradorCaja implements INegocioCorte {
 
     @Override
     public resumenVentasDTO generarResumenVentasTurno(int idCajero, Date fechaActual) {
-        aperturaCaja apertura = aperturaDAO.consultarUltimaApertura(idCajero);
-        Date fechaInicio = (apertura != null) ? apertura.getFechaHora() : fechaActual;
+        Document caja = corteCajaDAO.consultarUltimaCaja(idCajero);
+        Date fechaInicio = (caja != null) ? caja.getDate("fechaApertura") : fechaActual;
         return generadorResumenBO.generarResumenVentasTurno(idCajero, fechaInicio);
     }
 
@@ -148,38 +145,20 @@ public class AdministradorCaja implements INegocioCorte {
 
     @Override
     public boolean guardarNuevoCorte(corteCajaDTO datosCorte, List<desgloseDTO> listaDesgloses) {
-        aperturaCaja aperturaActiva = aperturaDAO.consultarUltimaApertura(datosCorte.getIdCajero());
-        if (aperturaActiva != null) {
-            datosCorte.setIdApertura(aperturaActiva.getIdApertura());
-        }
-
         boolean guardado = corteCajaBO.guardarNuevoCorte(datosCorte, listaDesgloses);
 
         if (guardado) {
-            aperturaDAO.vincularCorteAApertura(datosCorte.getIdApertura(), 1);
-
             if (datosCorte.getDiferencia() < 0) {
                 double faltante = Math.abs(datosCorte.getDiferencia());
                 adeudoBO.registrarAdeudoFaltante(datosCorte.getIdCajero(), faltante);
             }
         }
-
         return guardado;
     }
 
     @Override
     public List<corteCajaDTO> consultarCortesRealizados(Date fechaInicio, Date fechaFin) {
-        List<corteCajaDTO> listaCortes = corteCajaBO.consultarCortesRealizados(fechaInicio, fechaFin);
-
-        if (listaCortes != null) {
-            for (corteCajaDTO corte : listaCortes) {
-                Date fechaAp = aperturaDAO.obtenerFechaAperturaPorId(corte.getIdApertura());
-                if (fechaAp != null) {
-                    corte.setFechaApertura(fechaAp);
-                }
-            }
-        }
-        return listaCortes;
+        return corteCajaBO.consultarCortesRealizados(fechaInicio, fechaFin);
     }
 
     @Override

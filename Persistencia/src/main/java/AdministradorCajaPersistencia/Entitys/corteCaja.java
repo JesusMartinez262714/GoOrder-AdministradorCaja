@@ -1,7 +1,5 @@
 package AdministradorCajaPersistencia.Entitys;
 
-import AdministradorCajaDTOs.desgloseDTO;
-
 import java.util.Date;
 import java.util.List;
 
@@ -16,7 +14,8 @@ public class corteCaja {
     private int idCajero;
     private int idSupervisor;
     private String cajero;
-    private List<desgloseDTO> listaDesglose;
+
+    private List<desgloseMontos> listaDesglose;
 
     public corteCaja() {}
 
@@ -100,11 +99,11 @@ public class corteCaja {
         this.cajero = cajero;
     }
 
-    public List<desgloseDTO> getListaDesglose() {
+    public List<desgloseMontos> getListaDesglose() {
         return listaDesglose;
     }
 
-    public void setListaDesglose(List<desgloseDTO> listaDesglose) {
+    public void setListaDesglose(List<desgloseMontos> listaDesglose) {
         this.listaDesglose = listaDesglose;
     }
 }

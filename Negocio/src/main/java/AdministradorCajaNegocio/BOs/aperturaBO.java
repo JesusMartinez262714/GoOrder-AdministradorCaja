@@ -2,18 +2,22 @@ package AdministradorCajaNegocio.BOs;
 
 import AdministradorCajaDTOs.aperturaCajaDTO;
 import AdministradorCajaNegocio.Interfaces.IAperturaBO;
-import AdministradorCajaNegocio.Mappers.AperturaMapper;
-import AdministradorCajaPersistencia.Interfaces.IAperturaCajaDAO;
+import AdministradorCajaPersistencia.Interfaces.ICorteCajaDAO;
 
 public class aperturaBO implements IAperturaBO {
-    private IAperturaCajaDAO AperturaDAO;
 
-    public aperturaBO(IAperturaCajaDAO dao) {
-        this.AperturaDAO = dao;
+    private ICorteCajaDAO corteCajaDAO;
+
+    public aperturaBO(ICorteCajaDAO dao) {
+        this.corteCajaDAO = dao;
     }
 
     @Override
     public boolean registrarFondolnicial(aperturaCajaDTO apertura) {
-        return AperturaDAO.insertarApertura(AperturaMapper.dtoToEntity(apertura));
+        return corteCajaDAO.registrarApertura(
+                apertura.getIdCajero(),
+                apertura.getMontoInicial(),
+                apertura.getIdSupervisor()
+        );
     }
 }

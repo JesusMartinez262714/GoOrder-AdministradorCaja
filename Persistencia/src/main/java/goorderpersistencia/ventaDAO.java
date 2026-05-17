@@ -63,10 +63,11 @@ public class ventaDAO implements IVentaDAO {
     @Override
     public int obtenerIdCajeroConCajaAbierta() {
         try {
-            MongoCollection<Document> collAperturas = database.getCollection("aperturas");
-            Document doc = collAperturas.find(Filters.eq("estado", "ABIERTA")).first();
+            MongoCollection<Document> collCaja = database.getCollection("caja");
+            Document doc = collCaja.find(Filters.eq("estado", "ABIERTA")).first();
+
             if (doc == null) {
-                doc = collAperturas.find().sort(new Document("fechaHora", -1)).first();
+                doc = collCaja.find().sort(new Document("fechaApertura", -1)).first();
             }
             if (doc != null) {
                 return doc.getInteger("idCajero");
