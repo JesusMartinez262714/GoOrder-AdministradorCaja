@@ -13,5 +13,4 @@ public interface ICorteCajaBO {
 
     List<corteCajaDTO> consultarCortesRealizados(Date inicio, Date fin);
 
-    boolean eliminarCorte(int idCaja);
 }

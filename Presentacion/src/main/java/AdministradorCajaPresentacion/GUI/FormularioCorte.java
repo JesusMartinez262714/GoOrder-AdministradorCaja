@@ -15,6 +15,13 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+/**
+ * Pantalla principal del formulario para realizar el corte de caja.
+ * Permite capturar los montos físicos por cada método de pago, adjuntar
+ * la imagen del comprobante y calcular las diferencias lógicas antes de cerrar.
+ * * @author Jesus Manuel Martinez Cortez
+ * @version 1.0
+ */
 public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoListener {
 
     private Control control;
@@ -32,6 +39,11 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
     private final Color COLOR_CARD = new Color(60, 60, 60);
     private final Color COLOR_DIVISOR = new Color(85, 85, 85);
 
+    /**
+     * Constructor que enlaza el controlador de la aplicación, inicializa
+     * el diseño gráfico y añade la primera fila de captura por defecto.
+     * * @param control Instancia del controlador para la navegación entre ventanas.
+     */
     public FormularioCorte(Control control) {
         this.control = control;
         initComponents();
@@ -39,6 +51,10 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         agregarFila();
     }
 
+    /**
+     * Configura las propiedades esenciales de la ventana, como el tamaño,
+     * título del marco, centrado y comportamiento de cierre.
+     */
     private void configurarVentana() {
         setTitle("GoOrder - Nuevo Corte");
         setSize(480, 780);
@@ -47,6 +63,10 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         getContentPane().setBackground(COLOR_FONDO);
     }
 
+    /**
+     * Inicializa y organiza todos los componentes visuales de la pantalla,
+     * aplicando el diseño oscuro y las fuentes tipográficas del sistema.
+     */
     private void initComponents() {
         setLayout(new BorderLayout());
 
@@ -185,7 +205,7 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         lblTotalText.setFont(new Font("Segoe UI", Font.BOLD, 16));
         lblTotalText.setPreferredSize(new Dimension(75, 30));
 
-        lblTotalManualBadge = new JLabel("$0", SwingConstants.CENTER);
+        lblTotalManualBadge = new JLabel("$0.00", SwingConstants.CENTER);
         lblTotalManualBadge.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblTotalManualBadge.setForeground(Color.BLACK);
         RoundedPanel badgeTotal = new RoundedPanel(15, Color.WHITE);
@@ -202,7 +222,7 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         lblFaltanteText.setFont(new Font("Segoe UI", Font.BOLD, 16));
         lblFaltanteText.setPreferredSize(new Dimension(75, 30));
 
-        lblFaltanteBadge = new JLabel("$0", SwingConstants.CENTER);
+        lblFaltanteBadge = new JLabel("$0.00", SwingConstants.CENTER);
         lblFaltanteBadge.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblFaltanteBadge.setForeground(Color.BLACK);
         RoundedPanel badgeFaltante = new RoundedPanel(15, Color.WHITE);
@@ -232,6 +252,13 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         add(new JScrollPane(pnlPrincipal), BorderLayout.CENTER);
     }
 
+    /**
+     * Construye una fila visual estilizada con bordes redondeados para agrupar
+     * una etiqueta de texto con un componente JComponent específico.
+     * * @param texto Mensaje descriptivo de la etiqueta de la fila.
+     * @param comp Elemento interactivo de Swing que se integrará al contenedor.
+     * @return El panel JPanel configurado con la estructura visual.
+     */
     private JPanel crearFilaPildora(String texto, JComponent comp) {
         JPanel p = new JPanel(new BorderLayout(15, 0));
         p.setBackground(COLOR_FONDO);
@@ -259,6 +286,10 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         return p;
     }
 
+    /**
+     * Añade una nueva fila dinámica para capturar otro método de pago en el panel,
+     * limitando la cantidad a un máximo de cuatro desgloses simultativos.
+     */
     private void agregarFila() {
         if (pnlContenedorFilas.getComponentCount() >= 4) return;
         pnlContenedorFilas.add(new FilaMontoPanel(this));
@@ -266,6 +297,10 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         calcularTotales();
     }
 
+    /**
+     * Remueve la última fila de desglose agregada al panel y actualiza de inmediato
+     * las etiquetas con las sumas financieras acumulativas del formulario.
+     */
     private void quitarFila() {
         int count = pnlContenedorFilas.getComponentCount();
         if (count > 0) {
@@ -276,40 +311,76 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         }
     }
 
+    /**
+     * Abre un cuadro selector de archivos JFileChooser enfocado en imágenes para
+     * cargar la foto del comprobante físico y mostrar una previsualización en la GUI.
+     */
     private void adjuntarImagen() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setFileFilter(new FileNameExtensionFilter("Imágenes", "jpg", "png", "jpeg"));
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
-            rutaImagenSeleccionada = file.getAbsolutePath();
-            lblPreviewImagen.setIcon(new ImageIcon(new ImageIcon(rutaImagenSeleccionada).getImage().getScaledInstance(150, 100, Image.SCALE_SMOOTH)));
+            if (file != null && file.exists() && file.isFile()) {
+                rutaImagenSeleccionada = file.getAbsolutePath();
+                lblPreviewImagen.setIcon(new ImageIcon(new ImageIcon(rutaImagenSeleccionada).getImage().getScaledInstance(150, 100, Image.SCALE_SMOOTH)));
+            } else {
+                JOptionPane.showMessageDialog(this, "El archivo seleccionado no es válido o no existe en el disco.", "Archivo Inválido", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
+    /**
+     * Actualiza automáticamente el campo del supervisor consultando el nombre
+     * asociado al cajero que se encuentra seleccionado en el ComboBox.
+     */
     private void actualizarSupervisor() {
         cajeroDTO emp = (cajeroDTO) cmbEmpleados.getSelectedItem();
         txtSupervisor.setText((emp != null) ? control.obtenerNombreSupervisorAsociado(emp.getIdCajero()) : "---");
     }
 
+    /**
+     * Suma las cantidades físicas declaradas en cada una de las filas activas y calcula
+     * la diferencia con respecto al dinero esperado del turno para mostrar el faltante.
+     */
     public void calcularTotales() {
         double total = 0;
         for (Component c : pnlContenedorFilas.getComponents()) {
             if (c instanceof FilaMontoPanel) total += ((FilaMontoPanel) c).getMonto();
         }
-        lblTotalManualBadge.setText(String.format("$%.0f", total));
+        lblTotalManualBadge.setText(String.format("$%,.2f", total));
 
         cajeroDTO emp = (cajeroDTO) cmbEmpleados.getSelectedItem();
         if (emp != null) {
             double esperado = (this.idCorteEditando != -1) ? this.montoEsperadoEditando : control.obtenerMontoEsperado(emp.getIdCajero());
-            lblFaltanteBadge.setText(String.format("$%.0f", Math.max(0, esperado - total)));
+            lblFaltanteBadge.setText(String.format("$%,.2f", Math.max(0, esperado - total)));
         } else {
-            lblFaltanteBadge.setText("$0");
+            lblFaltanteBadge.setText("$0.00");
         }
     }
 
+    /**
+     * Ejecuta las validaciones obligatorias del formulario (cajero seleccionado, campos completos
+     * y métodos coherentes con las ventas) antes de avanzar a la ventana de conciliación final.
+     */
     private void realizarCorte() {
         cajeroDTO emp = (cmbEmpleados.getSelectedItem() != null) ? (cajeroDTO) cmbEmpleados.getSelectedItem() : null;
-        if (emp == null) return;
+        if (emp == null) {
+            JOptionPane.showMessageDialog(this, "Debe seleccionar un empleado para proceder con el corte.", "Error de Validación", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (pnlContenedorFilas.getComponentCount() == 0) {
+            JOptionPane.showMessageDialog(this, "Debe declarar al menos un método de pago en el desglose.", "Datos Incompletos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if (!rutaImagenSeleccionada.isEmpty()) {
+            File archivoComprobante = new File(rutaImagenSeleccionada);
+            if (!archivoComprobante.exists() || !archivoComprobante.isFile()) {
+                JOptionPane.showMessageDialog(this, "La ruta del comprobante adjunto ha dejado de ser válida. Por favor, reasigne el archivo.", "Error de Archivo", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        }
 
         double totalContado = 0;
         List<desgloseDTO> desgloses = new ArrayList<>();
@@ -366,7 +437,7 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         }
 
         if (totalContado == 0 && desgloses.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No hay montos físicos.", "Vacío", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "No se puede procesar un corte con una declaración de montos físicos en cero.", "Validación de Contabilidad", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -374,6 +445,11 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         control.mostrarConciliacionFinal(esperadoFinal, totalContado, emp, desgloses, rutaImagenSeleccionada, idCorteEditando);
     }
 
+    /**
+     * Llena el ComboBox de empleados con la lista de cajeros recibida desde la
+     * capa de negocio y refresca el cálculo totalizador en pantalla.
+     * * @param empleados Lista de objetos DTO con los cajeros disponibles.
+     */
     public void cargarEmpleados(List<cajeroDTO> empleados) {
         cmbEmpleados.removeAllItems();
         if (empleados != null) for (cajeroDTO emp : empleados) cmbEmpleados.addItem(emp);
@@ -381,6 +457,10 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         calcularTotales();
     }
 
+    /**
+     * Borra todas las selecciones de la ventana, remueve la vista previa del comprobante
+     * y vacía las variables para dejar el formulario listo para un corte nuevo.
+     */
     public void limpiarFormulario() {
         this.idCorteEditando = -1;
         this.montoEsperadoEditando = 0.0;
@@ -389,11 +469,16 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         lblPreviewImagen.setIcon(null);
         if (cmbEmpleados.getItemCount() > 0) cmbEmpleados.setSelectedIndex(0);
         txtSupervisor.setText("---");
-        lblTotalManualBadge.setText("$0");
-        lblFaltanteBadge.setText("$0");
+        lblTotalManualBadge.setText("$0.00");
+        lblFaltanteBadge.setText("$0.00");
         agregarFila();
     }
 
+    /**
+     * Configura el formulario inyectando la información de un corte histórico seleccionado,
+     * permitiendo modificar las cantidades declaradas anteriormente.
+     * * @param corte Objeto DTO con el registro contable histórico que se va a editar.
+     */
     public void cargarCorteParaEdicion(corteCajaDTO corte) {
         limpiarFormulario();
 
@@ -435,15 +520,26 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         return false;
     }
 
+    /**
+     * Clase interna personalizada para dibujar paneles JPanel con esquinas curvas
+     * utilizando suavizado de bordes con Graphics2D.
+     */
     class RoundedPanel extends JPanel {
         private int radius;
         private Color bgColor;
+
+        /**
+         * Inicializa las propiedades de curvatura y fondo del panel redondeado.
+         * * @param radius Radio para redondear las esquinas del contenedor.
+         * @param bgColor Color de fondo base asignado al panel.
+         */
         public RoundedPanel(int radius, Color bgColor) {
             this.radius = radius;
             this.bgColor = bgColor;
             setOpaque(false);
             setLayout(new BorderLayout());
         }
+
         @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -454,10 +550,23 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         }
     }
 
+    /**
+     * Clase interna para personalizar los botones del formulario con bordes
+     * redondeados y efectos visuales de interacción mediante Graphics2D.
+     */
     class RoundedButton extends JButton {
         private int radius;
         private Color bgColor;
         private String customText;
+
+        /**
+         * Configura el texto, colores y fuentes del botón redondo, desactivando
+         * los estilos por defecto de Java Swing.
+         * * @param text Texto descriptivo que se mostrará dentro del botón.
+         * @param radius Radio de curvatura para redondear las esquinas del botón.
+         * @param bgColor Color del fondo base asignado al componente.
+         * @param fgColor Color asignado a las fuentes de texto del botón.
+         */
         public RoundedButton(String text, int radius, Color bgColor, Color fgColor) {
             super("");
             this.customText = text;
@@ -469,10 +578,17 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
             setBorderPainted(false);
             setCursor(new Cursor(Cursor.HAND_CURSOR));
         }
+
+        /**
+         * Permite inyectar código estructurado HTML dentro del botón para
+         * personalizar el formateo del contenido.
+         * * @param html Cadena de texto estructurada con etiquetas HTML.
+         */
         public void setTextHtml(String html) {
             super.setText(html);
             this.customText = null;
         }
+
         @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);

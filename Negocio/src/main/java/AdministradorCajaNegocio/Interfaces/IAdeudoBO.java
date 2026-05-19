@@ -1,11 +1,9 @@
 package AdministradorCajaNegocio.Interfaces;
 
 
-
-import AdministradorCajaDTOs.adeudoDTO;
-
-import java.util.List;
-
 public interface IAdeudoBO {
 
+    boolean registrarAdeudoFaltante(int idCajero, double montoFaltante);
+
+    boolean liquidarAdeudo(int idCajero, double montoPagado);
 }

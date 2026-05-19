@@ -8,6 +8,10 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -15,6 +19,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
+/**
+ * Pantalla que muestra el historial de todos los cortes de caja registrados en el sistema.
+ * Permite buscar cortes por cajero o folio, aplicar filtros por estado y ordenar la lista.
+ * * @author Jesus Manuel Martinez Cortez
+ * @version 1.0
+ */
 public class HistorialCortes extends JFrame {
 
     private Control control;
@@ -38,12 +48,21 @@ public class HistorialCortes extends JFrame {
     private final Color COLOR_ELIMINAR = new Color(211, 47, 47);
     private final Color COLOR_CARD_BG = Color.WHITE;
 
+    /**
+     * Constructor que recibe el controlador para comunicar la vista con el negocio
+     * e inicializa todos los componentes de la ventana.
+     * * @param control Controlador encargado de la navegación y flujo del sistema.
+     */
     public HistorialCortes(Control control) {
         this.control = control;
         initComponents();
         configurarVentana();
     }
 
+    /**
+     * Configura los parámetros básicos de la ventana como tamaño, título,
+     * cierre por defecto y centrado en pantalla.
+     */
     private void configurarVentana() {
         setTitle("GoOrder - Historial de Cortes");
         setSize(1200, 800);
@@ -51,6 +70,10 @@ public class HistorialCortes extends JFrame {
         setLocationRelativeTo(null);
     }
 
+    /**
+     * Inicializa y organiza todos los componentes visuales de la interfaz,
+     * dividiendo la pantalla en el historial izquierdo y el detalle del ticket derecho.
+     */
     private void initComponents() {
         setLayout(new GridLayout(1, 2));
 
@@ -85,6 +108,8 @@ public class HistorialCortes extends JFrame {
         txtSearch.setBorder(new EmptyBorder(10, 15, 10, 15));
         txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         txtSearch.setForeground(new Color(50, 50, 50));
+
+        ((AbstractDocument) txtSearch.getDocument()).setDocumentFilter(new FiltroBusquedaMaximo());
 
         txtSearch.getDocument().addDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e) { aplicarFiltrosCombinados(); }
@@ -148,6 +173,7 @@ public class HistorialCortes extends JFrame {
         pnlSearchRow.add(txtSearch, BorderLayout.CENTER);
         pnlSearchRow.add(pnlIcon, BorderLayout.EAST);
         pnlHeader.add(lblTitulo);
+        pnlSearchRow.setBorder(new EmptyBorder(20, 0, 25, 0));
         pnlHeader.add(pnlSearchRow);
         pnlLeft.add(pnlHeader, BorderLayout.NORTH);
 
@@ -241,11 +267,25 @@ public class HistorialCortes extends JFrame {
                     JOptionPane.WARNING_MESSAGE);
 
             if (motivo != null) {
-                if (motivo.trim().isEmpty()) {
+                String motivoLimpio = motivo.trim().replaceAll("\\s+", " ");
+
+                if (motivoLimpio.isEmpty()) {
                     JOptionPane.showMessageDialog(this, "Debe ingresar un motivo válido para cancelar el corte.", "Motivo Requerido", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
-                control.cancelarCorte(corteSeleccionado, motivo.trim());
+
+                if (motivoLimpio.length() < 10) {
+                    JOptionPane.showMessageDialog(this, "El motivo ingresado es demasiado corto. Describa detalladamente la anomalía (mínimo 10 caracteres).", "Longitud Insuficiente", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                String regexLetrasSuficientes = ".*[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]{4,}.*";
+                if (!motivoLimpio.matches(regexLetrasSuficientes)) {
+                    JOptionPane.showMessageDialog(this, "El motivo carece de palabras descriptivas coherentes.", "Texto Inválido", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                control.cancelarCorte(corteSeleccionado, motivoLimpio);
             }
         });
 
@@ -268,6 +308,11 @@ public class HistorialCortes extends JFrame {
         add(pnlRight);
     }
 
+    /**
+     * Desmarca las otras opciones de ordenamiento para asegurar que solo
+     * se filtre por un criterio a la vez (recientes, antiguos, montos).
+     * * @param seleccionado El checkbox de ordenamiento que el usuario activó.
+     */
     private void desmarcarOtrosOrdenamientos(JCheckBoxMenuItem seleccionado) {
         if (seleccionado != chkRecientes) chkRecientes.setSelected(false);
         if (seleccionado != chkAntiguos) chkAntiguos.setSelected(false);
@@ -275,6 +320,11 @@ public class HistorialCortes extends JFrame {
         if (seleccionado != chkDescendente) chkDescendente.setSelected(false);
     }
 
+    /**
+     * Recibe la lista completa de cortes desde la base de datos, limpia la selección
+     * actual del ticket y activa los filtros combinados.
+     * * @param lista Lista de objetos DTO con los cortes de caja encontrados.
+     */
     public void llenarTabla(List<corteCajaDTO> lista) {
         this.listaOriginal = (lista != null) ? lista : new ArrayList<>();
         this.corteSeleccionado = null;
@@ -288,8 +338,14 @@ public class HistorialCortes extends JFrame {
         aplicarFiltrosCombinados();
     }
 
+    /**
+     * Filtra y ordena la lista de cortes en tiempo real combinando el texto
+     * del buscador con el estado de los checkboxes seleccionados.
+     */
     private void aplicarFiltrosCombinados() {
-        String query = txtSearch.getText().toLowerCase().trim();
+        String textoBusqueda = txtSearch.getText().toLowerCase().trim();
+        final String query = textoBusqueda.equals("buscar por nombre...") ? "" : textoBusqueda;
+
         List<corteCajaDTO> filtrada = new ArrayList<>(listaOriginal);
 
         if (!query.isEmpty()) {
@@ -319,6 +375,7 @@ public class HistorialCortes extends JFrame {
                 return c1.getFecha().compareTo(c2.getFecha());
             });
         } else if (chkRecientes.isSelected()) {
+            // 🔥 CORRECCIÓN: Se cambió la variable 'g' inválida por el parámetro 'c2'
             filtrada.sort((c1, c2) -> {
                 if (c1.getFecha() == null || c2.getFecha() == null) return 0;
                 return c2.getFecha().compareTo(c1.getFecha());
@@ -328,6 +385,11 @@ public class HistorialCortes extends JFrame {
         renderizarCards(filtrada);
     }
 
+    /**
+     * Limpia el panel izquierdo y dibuja las tarjetas visuales de los cortes
+     * que cumplieron con los filtros activos.
+     * * @param lista Lista filtrada de cortes de caja que se van a mostrar.
+     */
     private void renderizarCards(List<corteCajaDTO> lista) {
         pnlListaTarjetas.removeAll();
         for (corteCajaDTO c : lista) {
@@ -338,6 +400,11 @@ public class HistorialCortes extends JFrame {
         pnlListaTarjetas.repaint();
     }
 
+    /**
+     * Reconstruye de forma dinámica el diseño del ticket en formato HTML para mostrar
+     * detalladamente el arqueo, desgloses y observaciones del corte seleccionado.
+     * * @param c Objeto DTO del corte de caja seleccionado.
+     */
     private void actualizarDetalleTicket(corteCajaDTO c) {
         this.corteSeleccionado = c;
         pnlTicketDetalle.removeAll();
@@ -446,7 +513,40 @@ public class HistorialCortes extends JFrame {
         pnlTicketDetalle.repaint();
     }
 
+    /**
+     * Filtro para el campo de búsqueda que limita la cantidad máxima de caracteres
+     * permitidos para evitar errores de desbordamiento en la entrada de texto.
+     */
+    private class FiltroBusquedaMaximo extends DocumentFilter {
+        private final int limiteMaximo = 40;
+
+        @Override
+        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
+            if (string == null) return;
+            if ((fb.getDocument().getLength() + string.length()) <= limiteMaximo) {
+                super.insertString(fb, offset, string, attr);
+            }
+        }
+
+        @Override
+        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
+            if (text == null) return;
+            if ((fb.getDocument().getLength() - length + text.length()) <= limiteMaximo) {
+                super.replace(fb, offset, length, text, attrs);
+            }
+        }
+    }
+
+    /**
+     * Clase interna para diseñar de forma visual la tarjeta resumida de cada corte,
+     * incluyendo animaciones de color cuando el mouse pasa por encima.
+     */
     class CardCortePremium extends JPanel {
+
+        /**
+         * Configura los datos, etiquetas de estado y colores para la tarjeta del corte.
+         * * @param c Objeto DTO con la información del corte de caja.
+         */
         public CardCortePremium(corteCajaDTO c) {
             setOpaque(false);
             setLayout(new BorderLayout(15, 0));
@@ -529,7 +629,19 @@ public class HistorialCortes extends JFrame {
         }
     }
 
+    /**
+     * Clase interna para personalizar el diseño visual de los botones de acción,
+     * aplicando bordes redondeados y fuentes específicas de la paleta.
+     */
     class BotonAccion extends JButton {
+
+        /**
+         * Inicializa el botón configurando su texto, colores de fondo y estilo de fuente.
+         * * @param t Texto que llevará el botón.
+         * @param bg Color de fondo.
+         * @param fg Color del texto.
+         * @param italic Indica si la fuente se mostrará en estilo cursiva.
+         */
         public BotonAccion(String t, Color bg, Color fg, boolean italic) {
             super(t);
             setBackground(bg);

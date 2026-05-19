@@ -5,20 +5,37 @@ import AdministradorCajaPresentacion.Control.Control;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
+/**
+ * Pantalla principal para la gestión de cajeros en el sistema GoOrder.
+ * Permite visualizar la lista de cajeros activos, buscar por nombre,
+ * ordenar por niveles de adeudo y realizar abonos o eliminar registros.
+ * * @author Jesus Manuel Martinez Cortez
+ * @version 1.0
+ */
 public class GestionCajeros extends JFrame {
 
     private Control control;
     private JPanel pnlListaTarjetas;
     private JPopupMenu menuFiltros;
     private JTextField txtSearch;
+
+    private List<cajeroDTO> listaOriginal = new ArrayList<>();
+    private JCheckBoxMenuItem chkMayorAdeudo;
+    private JCheckBoxMenuItem chkMenorAdeudo;
 
     private final Color COLOR_FONDO = new Color(28, 28, 28);
     private final Color COLOR_SIDEBAR = new Color(35, 35, 35);
@@ -29,12 +46,21 @@ public class GestionCajeros extends JFrame {
     private final Color COLOR_GRIS = new Color(150, 150, 150);
     private final Color COLOR_PAGO = new Color(52, 152, 219);
 
+    /**
+     * Constructor que asigna el controlador principal de la ventana
+     * y genera la estructura visual de la pantalla.
+     * * @param control Instancia del controlador de presentación.
+     */
     public GestionCajeros(Control control) {
         this.control = control;
         configurarVentana();
         initComponents();
     }
 
+    /**
+     * Configura el comportamiento general de la ventana, como el tamaño,
+     * el centrado en pantalla y la operación de cierre por defecto.
+     */
     private void configurarVentana() {
         setTitle("GoOrder - Gestión de Cajeros");
         setSize(1000, 680);
@@ -43,6 +69,10 @@ public class GestionCajeros extends JFrame {
         getContentPane().setBackground(COLOR_FONDO);
     }
 
+    /**
+     * Inicializa los paneles del menú de navegación lateral, el buscador superior,
+     * el menú desplegable de filtros y el área de tarjetas informativas.
+     */
     private void initComponents() {
         setLayout(new BorderLayout());
 
@@ -125,28 +155,30 @@ public class GestionCajeros extends JFrame {
             }
         });
 
-        txtSearch.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    String busqueda = txtSearch.getText().equals("Buscar por nombre...") ? "" : txtSearch.getText();
-                    control.filtrarCajerosLista(busqueda, "Todos", "Todos");
-                }
-            }
+        ((AbstractDocument) txtSearch.getDocument()).setDocumentFilter(new FiltroBusquedaMaximo());
+
+        txtSearch.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { aplicarFiltrosCombinados(); }
+            public void removeUpdate(DocumentEvent e) { aplicarFiltrosCombinados(); }
+            public void changedUpdate(DocumentEvent e) { aplicarFiltrosCombinados(); }
         });
 
         menuFiltros = new JPopupMenu();
-        String[] opciones = {"Todos", "Matutino", "Vespertino", "Con Adeudo", "Sin Adeudo"};
-        for (String op : opciones) {
-            JMenuItem item = new JMenuItem(op);
-            item.addActionListener(e -> {
-                String busqueda = txtSearch.getText().equals("Buscar por nombre...") ? "" : txtSearch.getText();
-                String turno = (op.equals("Matutino") || op.equals("Vespertino")) ? op : "Todos";
-                String deuda = (op.equals("Con Adeudo") || op.equals("Sin Adeudo")) ? op : "Todos";
-                control.filtrarCajerosLista(busqueda, turno, deuda);
-            });
-            menuFiltros.add(item);
-        }
+        chkMayorAdeudo = new JCheckBoxMenuItem("Mayor Adeudo primero", false);
+        chkMenorAdeudo = new JCheckBoxMenuItem("Menor Adeudo primero", false);
+
+        chkMayorAdeudo.addActionListener(e -> {
+            if (chkMayorAdeudo.isSelected()) chkMenorAdeudo.setSelected(false);
+            aplicarFiltrosCombinados();
+        });
+        chkMenorAdeudo.addActionListener(e -> {
+            if (chkMenorAdeudo.isSelected()) chkMayorAdeudo.setSelected(false);
+            aplicarFiltrosCombinados();
+        });
+
+        menuFiltros.add(new JLabel("  ORDENAR POR ADEUDOS:"));
+        menuFiltros.add(chkMayorAdeudo);
+        menuFiltros.add(chkMenorAdeudo);
 
         JButton btnFiltro = new BotonAccion("Filtros ▼", COLOR_CARD, COLOR_TEXTO);
         btnFiltro.setPreferredSize(new Dimension(100, 40));
@@ -185,19 +217,82 @@ public class GestionCajeros extends JFrame {
         add(pnlMain, BorderLayout.CENTER);
     }
 
+    /**
+     * Guarda la lista completa recibida de la base de datos y manda a llamar
+     * al método para organizar y pintar los cajeros en pantalla.
+     * * @param lista Colección de objetos DTO con los cajeros del sistema.
+     */
     public void cargarCajeros(List<cajeroDTO> lista) {
+        this.listaOriginal = (lista != null) ? lista : new ArrayList<>();
+        aplicarFiltrosCombinados();
+    }
+
+    /**
+     * Aplica en tiempo real la coincidencia de texto del buscador y los estados
+     * de ordenamiento seleccionados en el menú para reconstruir las tarjetas.
+     */
+    private void aplicarFiltrosCombinados() {
+        String textoBusqueda = txtSearch.getText().toLowerCase().trim();
+        final String query = textoBusqueda.equals("buscar por nombre...") ? "" : textoBusqueda;
+
+        List<cajeroDTO> filtrada = new ArrayList<>(listaOriginal);
+
+        if (!query.isEmpty()) {
+            filtrada = filtrada.stream()
+                    .filter(c -> c.getNombreCompleto() != null && c.getNombreCompleto().toLowerCase().contains(query))
+                    .collect(Collectors.toList());
+        }
+
+        if (chkMayorAdeudo.isSelected()) {
+            filtrada.sort((c1, c2) -> Double.compare(c2.getMontoAdeudo(), c1.getMontoAdeudo()));
+        } else if (chkMenorAdeudo.isSelected()) {
+            filtrada.sort((c1, c2) -> Double.compare(c1.getMontoAdeudo(), c2.getMontoAdeudo()));
+        }
+
         pnlListaTarjetas.removeAll();
-        if (lista != null) {
-            for (cajeroDTO c : lista) {
-                pnlListaTarjetas.add(new CardCajero(c));
-                pnlListaTarjetas.add(Box.createRigidArea(new Dimension(0, 15)));
-            }
+        for (cajeroDTO c : filtrada) {
+            pnlListaTarjetas.add(new CardCajero(c));
+            pnlListaTarjetas.add(Box.createRigidArea(new Dimension(0, 15)));
         }
         pnlListaTarjetas.revalidate();
         pnlListaTarjetas.repaint();
     }
 
+    /**
+     * Filtro asignado al buscador de texto para limitar la cantidad máxima de caracteres
+     * permitidos, previniendo inyecciones de texto masivas.
+     */
+    private class FiltroBusquedaMaximo extends DocumentFilter {
+        private final int limiteMaximo = 40;
+
+        @Override
+        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
+            if (string == null) return;
+            if ((fb.getDocument().getLength() + string.length()) <= limiteMaximo) {
+                super.insertString(fb, offset, string, attr);
+            }
+        }
+
+        @Override
+        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
+            if (text == null) return;
+            if ((fb.getDocument().getLength() - length + text.length()) <= limiteMaximo) {
+                super.replace(fb, offset, length, text, attrs);
+            }
+        }
+    }
+
+    /**
+     * Subcomponente visual interno que representa la tarjeta de información
+     * y operaciones individuales de cada cajero.
+     */
     class CardCajero extends JPanel {
+
+        /**
+         * Configura el diseño visual de la tarjeta del empleado, sus indicadores
+         * de adeudo y las acciones de pago, edición y eliminación.
+         * * @param c Objeto DTO del cajero correspondiente a la tarjeta.
+         */
         public CardCajero(cajeroDTO c) {
             setLayout(new BorderLayout(15, 0));
             setOpaque(false);
@@ -243,12 +338,23 @@ public class GestionCajeros extends JFrame {
                     String input = JOptionPane.showInputDialog(GestionCajeros.this,
                             "Monto a abonar/pagar (Adeudo actual: $" + String.format("%,.2f", c.getMontoAdeudo()) + "):",
                             "Registrar Pago de Adeudo", JOptionPane.QUESTION_MESSAGE);
-                    if (input != null && !input.trim().isEmpty()) {
-                        try {
-                            double monto = Double.parseDouble(input);
-                            control.procesarPagoAdeudo(c.getIdCajero(), monto);
-                        } catch (NumberFormatException ex) {
-                            JOptionPane.showMessageDialog(GestionCajeros.this, "Por favor ingrese un monto numérico válido.", "Error", JOptionPane.ERROR_MESSAGE);
+                    if (input != null) {
+                        String inputLimpio = input.trim();
+                        if (!inputLimpio.isEmpty()) {
+                            try {
+                                double monto = Double.parseDouble(inputLimpio);
+                                if (monto <= 0) {
+                                    JOptionPane.showMessageDialog(GestionCajeros.this, "El monto a pagar debe ser mayor a cero.", "Monto Inválido", JOptionPane.ERROR_MESSAGE);
+                                    return;
+                                }
+                                if (monto > c.getMontoAdeudo()) {
+                                    JOptionPane.showMessageDialog(GestionCajeros.this, "El abono no puede ser mayor al adeudo actual del cajero.", "Monto Excedido", JOptionPane.ERROR_MESSAGE);
+                                    return;
+                                }
+                                control.procesarPagoAdeudo(c.getIdCajero(), monto);
+                            } catch (NumberFormatException ex) {
+                                JOptionPane.showMessageDialog(GestionCajeros.this, "Por favor ingrese un monto numérico válido.", "Error", JOptionPane.ERROR_MESSAGE);
+                            }
                         }
                     }
                 });
@@ -286,7 +392,18 @@ public class GestionCajeros extends JFrame {
         }
     }
 
+    /**
+     * Clase interna para dar estilo visual estilizado a los botones de acciones
+     * dentro de las tarjetas del catálogo.
+     */
     class BotonAccion extends JButton {
+
+        /**
+         * Inicializa el botón removiendo los bordes nativos de Java Swing.
+         * * @param t Texto instructivo de la acción.
+         * @param bg Color de fondo.
+         * @param fg Color de las fuentes.
+         */
         public BotonAccion(String t, Color bg, Color fg) {
             super(t);
             setBackground(bg);
@@ -306,8 +423,17 @@ public class GestionCajeros extends JFrame {
         }
     }
 
+    /**
+     * Clase interna para estructurar los botones redondos del menú de navegación lateral.
+     */
     class BotonRedondeado extends JButton {
         private boolean destacado;
+
+        /**
+         * Asigna la tipografía y los flags visuales del diseño del menú.
+         * * @param t Texto del botón.
+         * @param d Flag que determina si el botón usa el color de realce activo.
+         */
         public BotonRedondeado(String t, boolean d) {
             super(t);
             this.destacado = d;

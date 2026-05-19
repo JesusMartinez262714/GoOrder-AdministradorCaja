@@ -14,7 +14,6 @@ public class aperturaCajaDTO {
     }
 
     public int getIdCajero() { return idCajero; }
-    public String getNombreCajero() { return nombreCajero; }
     public double getMontoInicial() { return montoInicial; }
     public int getIdSupervisor() { return idSupervisor; }
 }

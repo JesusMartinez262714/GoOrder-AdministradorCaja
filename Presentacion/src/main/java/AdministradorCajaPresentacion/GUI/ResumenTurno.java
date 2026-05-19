@@ -12,6 +12,13 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Pantalla principal que muestra el resumen de ventas del turno actual en el sistema GoOrder.
+ * Permite a los supervisores ver el dinero acumulado por cada método de pago
+ * y controlar los turnos activos de los cajeros.
+ * * @author Jesus Manuel Martinez Cortez
+ * @version 1.0
+ */
 public class ResumenTurno extends JFrame {
     private Control control;
     private JLabel lblNombreSesion, lblTituloDinamico, lblEfectivo, lblApp, lblTarjeta, lblReferencia, lblHora;
@@ -22,6 +29,11 @@ public class ResumenTurno extends JFrame {
     private final Color COLOR_CARD = new Color(42, 42, 42);
     private final Color COLOR_ACCENTO = new Color(66, 206, 126);
 
+    /**
+     * Constructor que recibe el controlador de la aplicación, inicializa
+     * la interfaz gráfica y arranca el reloj en tiempo real.
+     * * @param control Instancia del controlador para comunicar la vista con el negocio.
+     */
     public ResumenTurno(Control control) {
         this.control = control;
         initComponents();
@@ -29,6 +41,10 @@ public class ResumenTurno extends JFrame {
         iniciarReloj();
     }
 
+    /**
+     * Configura las propiedades básicas de la ventana como tamaño, título,
+     * centrado en pantalla y el cierre de la aplicación por defecto.
+     */
     private void configurarVentana() {
         setTitle("GoOrder - Resumen de Turno");
         setSize(1000, 680);
@@ -37,6 +53,10 @@ public class ResumenTurno extends JFrame {
         getContentPane().setBackground(COLOR_FONDO);
     }
 
+    /**
+     * Inicia un temporizador Timer de Swing para actualizar la hora
+     * reflejada en pantalla cada segundo con el formato de doce horas.
+     */
     private void iniciarReloj() {
         Timer timer = new Timer(1000, e -> {
             SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a");
@@ -45,6 +65,10 @@ public class ResumenTurno extends JFrame {
         timer.start();
     }
 
+    /**
+     * Inicializa y acomoda todos los componentes visuales de la ventana,
+     * estructurando el menú lateral de navegación y las tarjetas de montos.
+     */
     private void initComponents() {
         setLayout(new BorderLayout());
 
@@ -144,7 +168,7 @@ public class ResumenTurno extends JFrame {
         JButton btnCerrar = new BotonRedondeado("INICIAR CIERRE DE CAJA", true);
         btnCerrar.setPreferredSize(new Dimension(280, 55));
         btnCerrar.addActionListener(e -> {
-            if (cmbCajeros.getItemCount() == 0) {
+            if (cmbCajeros.getItemCount() == 0 || cmbCajeros.getSelectedItem() == null) {
                 JOptionPane.showMessageDialog(this, "No hay turnos abiertos para realizar un cierre.", "Aviso", JOptionPane.WARNING_MESSAGE);
                 return;
             }
@@ -166,6 +190,10 @@ public class ResumenTurno extends JFrame {
         add(pnlMain, BorderLayout.CENTER);
     }
 
+    /**
+     * Limpia y restablece las etiquetas informativas y los montos a ceros
+     * cuando no hay ningún turno activo en el sistema.
+     */
     public void mostrarEstadoSinSesion() {
         lblNombreSesion.setText("Sesión Actual: ---");
         lblTituloDinamico.setText("Esperando apertura de turno...");
@@ -176,13 +204,23 @@ public class ResumenTurno extends JFrame {
         lblReferencia.setText("$0.00");
     }
 
+    /**
+     * Carga la lista de cajeros con turnos abiertos en el ComboBox y actualiza
+     * las etiquetas con los montos de venta que les corresponden.
+     * * @param resumen Objeto DTO con el desglose de las ventas calculadas.
+     * @param cajeros Lista de cajeros que tienen sesiones activas en el turno.
+     * @param nombreSupervisor Nombre del supervisor a cargo de la sesión.
+     * @param idEmpleadoActivo ID del cajero que debe mostrarse seleccionado por defecto.
+     */
     public void cargarDatos(resumenVentasDTO resumen, List<cajeroDTO> cajeros, String nombreSupervisor, int idEmpleadoActivo) {
         java.awt.event.ItemListener[] listeners = cmbCajeros.getItemListeners();
         for (java.awt.event.ItemListener il : listeners) cmbCajeros.removeItemListener(il);
 
         cmbCajeros.removeAllItems();
-        if (cajeros != null) {
-            for (cajeroDTO cajero : cajeros) cmbCajeros.addItem(cajero);
+        if (cajeros != null && !cajeros.isEmpty()) {
+            for (cajeroDTO cajero : cajeros) {
+                if (cajero != null) cmbCajeros.addItem(cajero);
+            }
         }
 
         for (int i = 0; i < cmbCajeros.getItemCount(); i++) {
@@ -196,24 +234,61 @@ public class ResumenTurno extends JFrame {
         actualizarMontos(resumen, (cajeroDTO) cmbCajeros.getSelectedItem(), nombreSupervisor);
     }
 
+    /**
+     * Asigna un ItemListener al ComboBox de cajeros para actualizar las ventas
+     * en pantalla cada vez que se seleccione un empleado diferente.
+     * * @param listener El listener encargado de detectar los cambios de selección.
+     */
     public void setCajeroChangeListener(java.awt.event.ItemListener listener) {
         for (java.awt.event.ItemListener il : cmbCajeros.getItemListeners()) cmbCajeros.removeItemListener(il);
-        cmbCajeros.addItemListener(listener);
+        if (listener != null) cmbCajeros.addItemListener(listener);
     }
 
+    /**
+     * Actualiza los textos de las etiquetas con las cantidades de dinero de las ventas
+     * formateadas correctamente. Si el objeto resumen es nulo, los valores se limpian a cero.
+     * * @param resumen Objeto DTO con las ventas por concepto de pago.
+     * @param cajero Datos del cajero del cual se están mostrando los montos.
+     * @param nombreSupervisor Nombre del supervisor en sesión actual.
+     */
     public void actualizarMontos(resumenVentasDTO resumen, cajeroDTO cajero, String nombreSupervisor) {
         if (resumen != null) {
             lblEfectivo.setText(String.format("$%,.2f", resumen.getTotalEfectivo()));
             lblApp.setText(String.format("$%,.2f", resumen.getTotalApp()));
             lblTarjeta.setText(String.format("$%,.2f", resumen.getTotalTarjeta()));
             lblReferencia.setText(String.format("$%,.2f", resumen.getTotalReferencia()));
+        } else {
+            lblEfectivo.setText("$0.00");
+            lblApp.setText("$0.00");
+            lblTarjeta.setText("$0.00");
+            lblReferencia.setText("$0.00");
         }
-        if (cajero != null) lblTituloDinamico.setText("Resumen de Ventas: " + cajero.getNombreCompleto());
-        if (nombreSupervisor != null) lblNombreSesion.setText("Sesión Actual: " + nombreSupervisor);
+
+        if (cajero != null) {
+            lblTituloDinamico.setText("Resumen de Ventas: " + cajero.getNombreCompleto());
+        } else {
+            lblTituloDinamico.setText("Esperando selección de caja...");
+        }
+
+        if (nombreSupervisor != null) {
+            lblNombreSesion.setText("Sesión Actual: " + nombreSupervisor);
+        } else {
+            lblNombreSesion.setText("Sesión Actual: ---");
+        }
     }
 
+    /**
+     * Clase interna para crear botones con esquinas redondeadas personalizados
+     * para el diseño visual del tablero de la aplicación.
+     */
     class BotonRedondeado extends JButton {
         private boolean destacado;
+
+        /**
+         * Configura el texto, color de fondo y fuentes del botón redondo.
+         * * @param t Texto que llevará el botón en la interfaz.
+         * @param d Define si el botón usa el color verde de realce o el gris estándar.
+         */
         public BotonRedondeado(String t, boolean d) {
             super(t);
             this.destacado = d;
@@ -226,8 +301,8 @@ public class ResumenTurno extends JFrame {
             setMaximumSize(new Dimension(220, 45));
             setAlignmentX(Component.CENTER_ALIGNMENT);
         }
-        @Override
-        protected void paintComponent(Graphics g) {
+
+        @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(destacado ? COLOR_ACCENTO : new Color(50, 50, 50));
@@ -236,7 +311,18 @@ public class ResumenTurno extends JFrame {
         }
     }
 
+    /**
+     * Clase interna para mostrar las tarjetas informativas de resumen de ventas,
+     * aplicando el diseño con bordes redondeados e indicadores laterales.
+     */
     class CardResumen extends JPanel {
+
+        /**
+         * Construye la tarjeta asignándole un título descriptivo y enlazando
+         * la etiqueta de texto para el monto de dinero.
+         * * @param titulo El concepto de la venta (Efectivo, Tarjeta, etc.).
+         * @param montoLabel Componente JLabel que contendrá el valor dinámico.
+         */
         public CardResumen(String titulo, JLabel montoLabel) {
             setLayout(new BorderLayout());
             setBackground(COLOR_CARD);
@@ -253,8 +339,7 @@ public class ResumenTurno extends JFrame {
             add(montoLabel, BorderLayout.CENTER);
         }
 
-        @Override
-        protected void paintComponent(Graphics g) {
+        @Override protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(getBackground());
