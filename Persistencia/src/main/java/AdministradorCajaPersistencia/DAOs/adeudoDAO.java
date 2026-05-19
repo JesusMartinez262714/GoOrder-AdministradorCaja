@@ -2,6 +2,7 @@ package AdministradorCajaPersistencia.DAOs;
 
 import AdministradorCajaPersistencia.Entitys.adeudo;
 import AdministradorCajaPersistencia.Interfaces.IAdeudoDAO;
+import AdministradorCajaPersistencia.Mappers.AdeudoPersistenciaMapper;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -22,20 +23,29 @@ public class adeudoDAO implements IAdeudoDAO {
     @Override
     public List<adeudo> consultarPendientesPorCajero(int idCajero) {
         List<adeudo> lista = new ArrayList<>();
-        for (Document doc : coleccion.find(Filters.and(Filters.eq("idCajero", idCajero), Filters.eq("estado", "PENDIENTE")))) {
-            adeudo a = new adeudo();
-            a.setIdCajero(doc.getInteger("idCajero"));
-            a.setMonto(obtenerDoubleSeguro(doc, "monto"));
-            a.setEstado(doc.getString("estado"));
-            lista.add(a);
+        try {
+            for (Document doc : coleccion.find(Filters.and(Filters.eq("idCajero", idCajero), Filters.eq("estado", "PENDIENTE")))) {
+                adeudo a = AdeudoPersistenciaMapper.documentToEntity(doc);
+                if (a != null) {
+                    lista.add(a);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error al consultar adeudos pendientes: " + e.getMessage());
         }
         return lista;
     }
 
     @Override
     public double consultarAdeudoPorCajero(int idCajero) {
-        Document doc = coleccion.find(Filters.eq("idCajero", idCajero)).first();
-        return doc != null ? obtenerDoubleSeguro(doc, "monto") : 0.0;
+        try {
+            Document doc = coleccion.find(Filters.eq("idCajero", idCajero)).first();
+            adeudo a = AdeudoPersistenciaMapper.documentToEntity(doc);
+            return a != null ? a.getMonto() : 0.0;
+        } catch (Exception e) {
+            System.err.println("Error al consultar adeudo por cajero: " + e.getMessage());
+            return 0.0;
+        }
     }
 
     @Override
@@ -52,15 +62,8 @@ public class adeudoDAO implements IAdeudoDAO {
             );
             return true;
         } catch (Exception e) {
+            System.err.println("Error al actualizar monto de adeudo: " + e.getMessage());
             return false;
         }
-    }
-
-    private double obtenerDoubleSeguro(Document doc, String campo) {
-        Object valor = doc.get(campo);
-        if (valor instanceof Number) {
-            return ((Number) valor).doubleValue();
-        }
-        return 0.0;
     }
 }

@@ -25,9 +25,9 @@ public class corteCajaDAO implements ICorteCajaDAO {
     @Override
     public boolean registrarApertura(int idCajero, double montoInicial, int idSupervisor) {
         try {
-            int idApertura = (int) (System.currentTimeMillis() / 1000);
+            int idCaja = (int) (System.currentTimeMillis() / 1000);
 
-            Document doc = new Document("idApertura", idApertura)
+            Document doc = new Document("idCaja", idCaja)
                     .append("idCajero", idCajero)
                     .append("idSupervisor", idSupervisor)
                     .append("fechaApertura", new Date())
@@ -70,37 +70,47 @@ public class corteCajaDAO implements ICorteCajaDAO {
     @Override
     public boolean guardarNuevoCorte(corteCaja entidad) {
         try {
-            entidad.setId((int) (System.currentTimeMillis() / 1000));
+            List<Document> subDocsDesglose = AdministradorCajaPersistencia.Mappers.CorteCajaPersistenciaMapper.desglosesToDocumentList(entidad.getListaDesglose());
 
-            List<Document> subDocsDesglose = new ArrayList<>();
-            if (entidad.getListaDesglose() != null) {
-                for (desgloseMontos d : entidad.getListaDesglose()) {
-                    Document subDoc = new Document("metodo", d.getNombreMetodo())
-                            .append("montoDeclarado", d.getMontoDeclarado());
-                    subDocsDesglose.add(subDoc);
-                }
+            Bson filtro;
+            Bson actualizaciones;
+
+            if (entidad.getIdCaja() > 0) {
+                filtro = Filters.eq("idCaja", entidad.getIdCaja());
+
+                actualizaciones = Updates.combine(
+                        Updates.set("montoEsperado", entidad.getTotalEsperadoSistema()),
+                        Updates.set("montoReal", entidad.getTotalRealDeclarado()),
+                        Updates.set("diferencia", entidad.getDiferencia()),
+                        Updates.set("observaciones", entidad.getObservaciones()),
+                        Updates.set("desgloses", subDocsDesglose),
+                        Updates.set("estado", "CERRADA")
+                );
+            } else {
+                int nuevoId = (int) (System.currentTimeMillis() / 1000);
+
+                filtro = Filters.and(
+                        Filters.eq("idCajero", entidad.getIdCajero()),
+                        Filters.eq("estado", "ABIERTA")
+                );
+
+                actualizaciones = Updates.combine(
+                        Updates.set("idCaja", nuevoId),
+                        Updates.set("fechaCorte", new Date()),
+                        Updates.set("montoEsperado", entidad.getTotalEsperadoSistema()),
+                        Updates.set("montoReal", entidad.getTotalRealDeclarado()),
+                        Updates.set("diferencia", entidad.getDiferencia()),
+                        Updates.set("observaciones", entidad.getObservaciones()),
+                        Updates.set("desgloses", subDocsDesglose),
+                        Updates.set("estado", "CERRADA")
+                );
             }
 
-            Bson filtroCajaAbierta = Filters.and(
-                    Filters.eq("idCajero", entidad.getIdCajero()),
-                    Filters.eq("estado", "ABIERTA")
-            );
-
-            Bson actualizaciones = Updates.combine(
-                    Updates.set("idCorte", entidad.getId()),
-                    Updates.set("fechaCorte", new Date()),
-                    Updates.set("montoEsperado", entidad.getTotalEsperadoSistema()),
-                    Updates.set("montoReal", entidad.getTotalRealDeclarado()),
-                    Updates.set("diferencia", entidad.getDiferencia()),
-                    Updates.set("desgloses", subDocsDesglose),
-                    Updates.set("estado", "CERRADA")
-            );
-
-            long modificados = coleccion.updateOne(filtroCajaAbierta, actualizaciones).getModifiedCount();
+            long modificados = coleccion.updateOne(filtro, actualizaciones).getModifiedCount();
             return modificados > 0;
 
         } catch (Exception e) {
-            System.err.println("Error al guardar corte: " + e.getMessage());
+            System.err.println("Error al guardar/editar el corte en la base de datos: " + e.getMessage());
             return false;
         }
     }
@@ -108,71 +118,51 @@ public class corteCajaDAO implements ICorteCajaDAO {
     @Override
     public List<corteCaja> consultarCortesRealizados(Date inicio, Date fin) {
         List<corteCaja> lista = new ArrayList<>();
-
-        Bson filtro = Filters.and(
-                Filters.gte("fechaCorte", inicio),
-                Filters.lte("fechaCorte", fin),
-                Filters.eq("estado", "CERRADA")
-        );
+        Bson filtro = Filters.ne("estado", "ABIERTA");
 
         for (Document doc : coleccion.find(filtro).sort(Sorts.descending("fechaCorte"))) {
-            corteCaja c = new corteCaja();
+            corteCaja c = AdministradorCajaPersistencia.Mappers.CorteCajaPersistenciaMapper.documentToEntity(doc);
 
-            c.setId(doc.getInteger("idCorte") != null ? doc.getInteger("idCorte") : 0);
-            c.setIdApertura(doc.getInteger("idApertura") != null ? doc.getInteger("idApertura") : 0);
-            c.setFecha(doc.getDate("fechaCorte"));
-            c.setIdCajero(doc.getInteger("idCajero") != null ? doc.getInteger("idCajero") : 0);
-            c.setEstado(doc.getString("estado"));
-
-            c.setTotalEsperadoSistema(obtenerDoubleSeguro(doc, "montoEsperado"));
-            c.setTotalRealDeclarado(obtenerDoubleSeguro(doc, "montoReal"));
-            c.setDiferencia(obtenerDoubleSeguro(doc, "diferencia"));
-
-            List<Document> desgloseDocs = doc.getList("desgloses", Document.class);
-            if (desgloseDocs != null) {
-                List<desgloseMontos> listaDesgloses = new ArrayList<>();
-                for (Document subDoc : desgloseDocs) {
-                    desgloseMontos d = new desgloseMontos();
-                    d.setNombreMetodo(subDoc.getString("metodo"));
-                    d.setMontoDeclarado(obtenerDoubleSeguro(subDoc, "montoDeclarado"));
-                    listaDesgloses.add(d);
+            if (c != null) {
+                if ("CERRADA".equalsIgnoreCase(c.getEstado())) {
+                    c.setEstado("Vigente");
                 }
-                c.setListaDesglose(listaDesgloses);
+                lista.add(c);
             }
-
-            lista.add(c);
         }
         return lista;
     }
 
-    @Override
-    public double obtenerDoubleSeguro(Document doc, String campo) {
-        Object valor = doc.get(campo);
-        if (valor instanceof Number) {
-            return ((Number) valor).doubleValue();
-        }
-        return 0.0;
-    }
 
     @Override
     public boolean eliminarCorte(int idCorte) {
         try {
-            coleccion.deleteOne(Filters.eq("idCorte", idCorte));
-            return true;
+            var filtro = com.mongodb.client.model.Filters.eq("idCaja", idCorte);
+
+            long borrados = coleccion.deleteOne(filtro).getDeletedCount();
+
+            return borrados > 0;
+
         } catch (Exception e) {
+            System.err.println("Error al eliminar corte físicamente: " + e.getMessage());
             return false;
         }
     }
 
+
     @Override
-    public boolean actualizarEstadoCorte(int idCorte, String nuevoEstado) {
+    public boolean actualizarEstadoCorte(int idCaja, String nuevoEstado, String motivoCancelacion) {
         try {
             coleccion.updateOne(
-                    Filters.eq("idCorte", idCorte),
-                    Updates.set("estado", nuevoEstado)
+                    Filters.eq("idCaja", idCaja),
+                    Updates.combine(
+                            Updates.set("estado", nuevoEstado),
+                            Updates.set("motivoCancelacion", motivoCancelacion)
+                    )
             );
             return true;
         } catch (Exception e) {
+            System.err.println("Error al cancelar corte: " + e.getMessage());
             return false;
         }
     }

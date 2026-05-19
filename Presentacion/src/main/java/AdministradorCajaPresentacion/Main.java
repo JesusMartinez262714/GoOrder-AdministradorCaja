@@ -25,14 +25,13 @@ public class Main {
         if (db != null) {
             IVentaDAO vDAO = new ventaDAO(db);
             ICorteCajaDAO cDAO = new corteCajaDAO(db);
-            IDesgloseMontosDAO dDAO = new desgloseMontosDAO(db);
 
 
             ICajeroDAO cajDAO = new cajeroDAO(db);
             IAdeudoDAO adeDAO = new adeudoDAO(db);
             ISupervisorDAO supDAO = new supervisorDAO(db);
 
-            INegocioCorte negocio = new AdministradorCaja(vDAO, cDAO, dDAO, cajDAO, adeDAO, supDAO);
+            INegocioCorte negocio = new AdministradorCaja(vDAO, cDAO, cajDAO, adeDAO, supDAO);
             Control control = new Control(negocio);
 
             SwingUtilities.invokeLater(() -> {

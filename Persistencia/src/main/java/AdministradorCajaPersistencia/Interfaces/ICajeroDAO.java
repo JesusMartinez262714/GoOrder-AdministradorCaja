@@ -15,4 +15,5 @@ public interface ICajeroDAO {
     boolean actualizarCajero(cajero entidad);
 
     boolean eliminarCajero(int idCajero);
+    boolean actualizarAdeudoAcumulado(int idCajero, double monto);
 }

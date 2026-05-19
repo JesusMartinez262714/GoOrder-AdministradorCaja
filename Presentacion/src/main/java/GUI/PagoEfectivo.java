@@ -95,15 +95,13 @@ public class PagoEfectivo extends JFrame {
 
         btnAceptar.addActionListener(e -> {
             try {
-                boolean pagoExitoso = control.intentarPago(1, "EFECTIVO", control.getCarrito().getTotal());
-                if (pagoExitoso) {
-                    control.mostrarAgradecimiento();
-                    control.limpiarCarrito();
-                } else {
-                    JOptionPane.showMessageDialog(this, "No se pudo registrar el pago en efectivo.", "Error", JOptionPane.ERROR_MESSAGE);
-                }
+                control.intentarPago(1, "EFECTIVO", control.getCarrito().getTotal());
+
+                control.mostrarAgradecimiento();
+                control.limpiarCarrito();
+
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error al procesar cobro: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Error de conexión al procesar el pedido: " + ex.getMessage(), "Error del Sistema", JOptionPane.ERROR_MESSAGE);
             }
         });
 

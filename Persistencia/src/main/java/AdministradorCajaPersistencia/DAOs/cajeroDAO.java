@@ -66,4 +66,18 @@ public class cajeroDAO implements ICajeroDAO {
             return false;
         }
     }
+    @Override
+    public boolean actualizarAdeudoAcumulado(int idCajero, double monto) {
+        try {
+            var filtro = com.mongodb.client.model.Filters.eq("idCajero", idCajero);
+
+            var actualizacion = com.mongodb.client.model.Updates.inc("adeudoTotal", monto);
+
+            long modificados = coleccion.updateOne(filtro, actualizacion).getModifiedCount();
+            return modificados > 0;
+        } catch (Exception e) {
+            System.err.println("Error al actualizar adeudo acumulado del cajero: " + e.getMessage());
+            return false;
+        }
+    }
 }

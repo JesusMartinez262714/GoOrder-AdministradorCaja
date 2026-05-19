@@ -2,6 +2,7 @@ package AdministradorCajaPresentacion.Control;
 
 import AdministradorCajaDTOs.*;
 import AdministradorCajaPresentacion.GUI.*;
+import AdministrarCaja.JasperPDFAdapter;
 import Interfaces.INegocioCorte;
 import javax.swing.*;
 import java.util.ArrayList;
@@ -132,6 +133,8 @@ public class Control {
     public void editarFormularioCorte(corteCajaDTO corteSeleccionado) {
         if (pantallaFormulario == null) pantallaFormulario = new FormularioCorte(this);
         ocultarTodas();
+        pantallaFormulario.cargarEmpleados(fachadaNegocio.consultarCajeros());
+
         pantallaFormulario.cargarCorteParaEdicion(corteSeleccionado);
         pantallaFormulario.setVisible(true);
     }
@@ -140,18 +143,33 @@ public class Control {
         return fachadaNegocio.obtenerVentasTotalesPorCajero(id);
     }
 
-    public void mostrarConciliacionFinal(double esp, double cont, cajeroDTO c, List<desgloseDTO> des, String img) {
+    public void mostrarConciliacionFinal(double esp, double cont, cajeroDTO c, List<desgloseDTO> des, String img, Integer idCorteEditando) {
         if (pantallaFormulario != null) pantallaFormulario.setVisible(false);
-        new ConciliacionFinal(this, esp, cont, c, des, img).setVisible(true);
+        new ConciliacionFinal(this, esp, cont, c, des, img, idCorteEditando).setVisible(true);
     }
 
     public void volverAFormulario() {
         if (pantallaFormulario != null) pantallaFormulario.setVisible(true);
     }
 
-    public void guardarCorteFinal(double esp, double cont, int idC, List<desgloseDTO> des, String img, String nota) {
+    public void guardarCorteFinal(double esp, double cont, int idC, List<desgloseDTO> des, String img, String nota, Integer idCorteEditando) {
         double diff = fachadaNegocio.calcularDiferencia(esp, cont);
         corteCajaDTO dto = new corteCajaDTO();
+
+        if (idCorteEditando != null) {
+            dto.setIdCaja(idCorteEditando);
+
+            List<corteCajaDTO> historial = fachadaNegocio.consultarCortesRealizados(new Date(0), new Date());
+            if (historial != null) {
+                for (corteCajaDTO viejo : historial) {
+                    if (viejo.getIdCaja() == idCorteEditando && viejo.getDiferencia() < 0) {
+                        fachadaNegocio.liquidarAdeudo(idC, Math.abs(viejo.getDiferencia()));
+                        break;
+                    }
+                }
+            }
+        }
+
         dto.setMontoEsperado(esp);
         dto.setMontoReal(cont);
         dto.setDiferencia(diff);
@@ -159,19 +177,25 @@ public class Control {
         dto.setIdCajero(idC);
         dto.setIdSupervisor(mapaAsignacionIds.getOrDefault(idC, 1));
         dto.setListaDesglose(des);
+        dto.setObservaciones(nota);
 
         if (fachadaNegocio.guardarNuevoCorte(dto, des)) {
+            String accion = (idCorteEditando != null) ? "actualizado" : "cerrado";
+
             if (diff < 0) {
                 JOptionPane.showMessageDialog(null,
-                        "Corte cerrado.\nSe registró un adeudo faltante de $" + String.format("%,.2f", Math.abs(diff)) + " al cajero.",
+                        "Corte " + accion + ".\nSe registró un adeudo faltante de $" + String.format("%,.2f", Math.abs(diff)) + " al cajero.",
                         "Corte con Faltante", JOptionPane.WARNING_MESSAGE);
             } else {
-                JOptionPane.showMessageDialog(null, "¡Corte guardado exitosamente sin faltantes!");
+                JOptionPane.showMessageDialog(null, "¡Corte " + accion + " exitosamente! La caja ha quedado completamente cuadrada.");
             }
 
-            cajerosConTurnoAbierto.removeIf(c -> c.getIdCajero() == idC);
-            mapaAsignacionIds.remove(idC);
-            volverAResumen();
+            if (idCorteEditando == null) {
+                cajerosConTurnoAbierto.removeIf(c -> c.getIdCajero() == idC);
+                mapaAsignacionIds.remove(idC);
+            }
+
+            mostrarHistorialCortes();
         }
     }
 
@@ -209,9 +233,10 @@ public class Control {
         }
     }
 
-    public void cancelarCorte(int idCorte) {
-        if (fachadaNegocio.cancelarCorteLogico(idCorte)) {
-            JOptionPane.showMessageDialog(null, "El corte ahora tiene estado 'Cancelado'.");
+    public void cancelarCorte(corteCajaDTO corte, String motivo) {
+
+        if (fachadaNegocio.cancelarCorteLogico(corte, motivo)) {
+            JOptionPane.showMessageDialog(null, "El corte ha sido cancelado exitosamente y los adeudos se han revertido (si aplicaba).");
             mostrarHistorialCortes();
         } else {
             JOptionPane.showMessageDialog(null, "Error al intentar cancelar el corte.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -219,11 +244,36 @@ public class Control {
     }
 
     public void generarReportePDF(corteCajaDTO corte) {
-        JOptionPane.showMessageDialog(null,
-                "Generando Reporte PDF del Folio: CC-" + corte.getId() + "\n" +
-                        "Cajero: " + corte.getCajero() + "\n" +
-                        "Estado: " + corte.getEstado(),
-                "Reporte GoOrder", JOptionPane.INFORMATION_MESSAGE);
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Guardar Ticket de Corte PDF");
+
+        fileChooser.setSelectedFile(new java.io.File("Corte_Caja_CC-" + corte.getIdCaja() + ".pdf"));
+
+        int userSelection = fileChooser.showSaveDialog(null);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            java.io.File archivoParaGuardar = fileChooser.getSelectedFile();
+            String rutaDestino = archivoParaGuardar.getAbsolutePath();
+
+            if (!rutaDestino.toLowerCase().endsWith(".pdf")) {
+                rutaDestino += ".pdf";
+                archivoParaGuardar = new java.io.File(rutaDestino);
+            }
+
+            try {
+                JasperPDFAdapter pdfAdapter = new JasperPDFAdapter();
+                pdfAdapter.generarTicketCorte(corte, rutaDestino);
+
+                if (java.awt.Desktop.isDesktopSupported()) {
+                    java.awt.Desktop.getDesktop().open(archivoParaGuardar);
+                } else {
+                    JOptionPane.showMessageDialog(null, "PDF generado con éxito en:\n" + rutaDestino, "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                }
+
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(null, "Error al generar el PDF:\n" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     public void mostrarGestionCajeros() {
@@ -240,7 +290,9 @@ public class Control {
         }
         return false;
     }
-
+    public resumenVentasDTO obtenerResumenCajero(int idCajero) {
+        return fachadaNegocio.generarResumenVentasTurno(idCajero, new Date());
+    }
     public boolean editarCajero(cajeroDTO dto) {
         if (fachadaNegocio.editarCajero(dto)) {
             filtrarCajerosLista("", "Todos", "Todos");

@@ -24,6 +24,14 @@ public class HistorialCortes extends JFrame {
     private JPanel pnlTicketDetalle;
     private JPopupMenu menuFiltros;
 
+    private JTextField txtSearch;
+    private JCheckBoxMenuItem chkRecientes;
+    private JCheckBoxMenuItem chkAntiguos;
+    private JCheckBoxMenuItem chkAscendente;
+    private JCheckBoxMenuItem chkDescendente;
+    private JCheckBoxMenuItem chkActivos;
+    private JCheckBoxMenuItem chkCancelados;
+
     private final Color COLOR_FONDO = new Color(26, 26, 26);
     private final Color COLOR_ACCENTO = new Color(37, 211, 102);
     private final Color COLOR_CANCELADO = new Color(139, 115, 105);
@@ -63,7 +71,7 @@ public class HistorialCortes extends JFrame {
         pnlSearchRow.setOpaque(false);
         pnlSearchRow.setBorder(new EmptyBorder(20, 0, 25, 0));
 
-        JTextField txtSearch = new JTextField() {
+        txtSearch = new JTextField() {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
@@ -79,19 +87,37 @@ public class HistorialCortes extends JFrame {
         txtSearch.setForeground(new Color(50, 50, 50));
 
         txtSearch.getDocument().addDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) { filtrar(txtSearch.getText()); }
-            public void removeUpdate(DocumentEvent e) { filtrar(txtSearch.getText()); }
-            public void changedUpdate(DocumentEvent e) { filtrar(txtSearch.getText()); }
+            public void insertUpdate(DocumentEvent e) { aplicarFiltrosCombinados(); }
+            public void removeUpdate(DocumentEvent e) { aplicarFiltrosCombinados(); }
+            public void changedUpdate(DocumentEvent e) { aplicarFiltrosCombinados(); }
         });
 
         menuFiltros = new JPopupMenu();
-        String[] opciones = {"Recientes", "Antiguos", "Ascendente", "Descendente", "Activos", "Cancelados"};
-        for (String op : opciones) {
-            JMenuItem item = new JMenuItem(op);
-            item.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            item.addActionListener(e -> control.filtrarHistorial(op));
-            menuFiltros.add(item);
-        }
+
+        chkRecientes = new JCheckBoxMenuItem("Recientes", true);
+        chkAntiguos = new JCheckBoxMenuItem("Antiguos", false);
+        chkAscendente = new JCheckBoxMenuItem("Monto: Ascendente", false);
+        chkDescendente = new JCheckBoxMenuItem("Monto: Descendente", false);
+        chkActivos = new JCheckBoxMenuItem("Mostrar Activos", true);
+        chkCancelados = new JCheckBoxMenuItem("Mostrar Cancelados", true);
+
+        chkRecientes.addActionListener(e -> { desmarcarOtrosOrdenamientos(chkRecientes); aplicarFiltrosCombinados(); });
+        chkAntiguos.addActionListener(e -> { desmarcarOtrosOrdenamientos(chkAntiguos); aplicarFiltrosCombinados(); });
+        chkAscendente.addActionListener(e -> { desmarcarOtrosOrdenamientos(chkAscendente); aplicarFiltrosCombinados(); });
+        chkDescendente.addActionListener(e -> { desmarcarOtrosOrdenamientos(chkDescendente); aplicarFiltrosCombinados(); });
+
+        chkActivos.addActionListener(e -> aplicarFiltrosCombinados());
+        chkCancelados.addActionListener(e -> aplicarFiltrosCombinados());
+
+        menuFiltros.add(new JLabel("  ORDENAR POR:"));
+        menuFiltros.add(chkRecientes);
+        menuFiltros.add(chkAntiguos);
+        menuFiltros.add(chkAscendente);
+        menuFiltros.add(chkDescendente);
+        menuFiltros.addSeparator();
+        menuFiltros.add(new JLabel("  FILTRAR ESTADO:"));
+        menuFiltros.add(chkActivos);
+        menuFiltros.add(chkCancelados);
 
         JPanel pnlIcon = new JPanel() {
             @Override
@@ -161,7 +187,7 @@ public class HistorialCortes extends JFrame {
             }
             int confirm = JOptionPane.showConfirmDialog(this, "Esta acción eliminará el corte permanentemente de la base de datos.\n¿Desea continuar?", "Confirmar Eliminación", JOptionPane.YES_NO_OPTION, JOptionPane.ERROR_MESSAGE);
             if (confirm == JOptionPane.YES_OPTION) {
-                control.eliminarCorte(corteSeleccionado.getId());
+                control.eliminarCorte(corteSeleccionado.getIdCaja());
                 corteSeleccionado = null;
             }
         });
@@ -191,6 +217,10 @@ public class HistorialCortes extends JFrame {
                 JOptionPane.showMessageDialog(this, "Seleccione un corte primero para editar.", "Aviso", JOptionPane.WARNING_MESSAGE);
                 return;
             }
+            if (corteSeleccionado.getEstado().equalsIgnoreCase("Cancelado")) {
+                JOptionPane.showMessageDialog(this, "Este corte fue cancelado y ya no puede ser modificado.", "Acción Denegada", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             control.editarFormularioCorte(corteSeleccionado);
         });
 
@@ -204,20 +234,45 @@ public class HistorialCortes extends JFrame {
                 JOptionPane.showMessageDialog(this, "Este corte ya se encuentra cancelado.", "Aviso", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
-            int confirm = JOptionPane.showConfirmDialog(this, "¿Está seguro que desea marcar el folio CC-" + corteSeleccionado.getId() + " como CANCELADO?", "Confirmar Cancelación", JOptionPane.YES_NO_OPTION);
-            if (confirm == JOptionPane.YES_OPTION) {
-                control.cancelarCorte(corteSeleccionado.getId());
+
+            String motivo = JOptionPane.showInputDialog(this,
+                    "Ingrese el motivo de la cancelación para el folio CC-" + corteSeleccionado.getIdCaja() + ":",
+                    "Confirmar Cancelación",
+                    JOptionPane.WARNING_MESSAGE);
+
+            if (motivo != null) {
+                if (motivo.trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Debe ingresar un motivo válido para cancelar el corte.", "Motivo Requerido", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                control.cancelarCorte(corteSeleccionado, motivo.trim());
             }
         });
 
         pnlBtnsRightLeft.add(btnEditar);
         pnlBtnsRightLeft.add(btnCancelar);
         pnlFooterRight.add(pnlBtnsRightLeft, BorderLayout.WEST);
-        pnlFooterRight.add(new BotonAccion("GENERAR PDF", COLOR_ACCENTO, Color.BLACK, true), BorderLayout.EAST);
+        JButton btnGenerarPDF = new BotonAccion("GENERAR PDF", COLOR_ACCENTO, Color.BLACK, true);
+        btnGenerarPDF.addActionListener(e -> {
+            if (corteSeleccionado == null) {
+                JOptionPane.showMessageDialog(this, "Seleccione un corte primero para generar el PDF.", "Aviso", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            control.generarReportePDF(corteSeleccionado);
+        });
+        pnlFooterRight.add(btnGenerarPDF,BorderLayout.EAST);
+
         pnlRight.add(pnlFooterRight, BorderLayout.SOUTH);
 
         add(pnlLeft);
         add(pnlRight);
+    }
+
+    private void desmarcarOtrosOrdenamientos(JCheckBoxMenuItem seleccionado) {
+        if (seleccionado != chkRecientes) chkRecientes.setSelected(false);
+        if (seleccionado != chkAntiguos) chkAntiguos.setSelected(false);
+        if (seleccionado != chkAscendente) chkAscendente.setSelected(false);
+        if (seleccionado != chkDescendente) chkDescendente.setSelected(false);
     }
 
     public void llenarTabla(List<corteCajaDTO> lista) {
@@ -230,15 +285,46 @@ public class HistorialCortes extends JFrame {
         pnlTicketDetalle.add(lblPlaceholder);
         pnlTicketDetalle.revalidate();
         pnlTicketDetalle.repaint();
-        renderizarCards(this.listaOriginal);
+        aplicarFiltrosCombinados();
     }
 
-    private void filtrar(String texto) {
-        String query = texto.toLowerCase();
-        List<corteCajaDTO> filtrada = listaOriginal.stream()
-                .filter(c -> c.getCajero().toLowerCase().contains(query) ||
-                        String.valueOf(c.getId()).contains(query))
-                .collect(Collectors.toList());
+    private void aplicarFiltrosCombinados() {
+        String query = txtSearch.getText().toLowerCase().trim();
+        List<corteCajaDTO> filtrada = new ArrayList<>(listaOriginal);
+
+        if (!query.isEmpty()) {
+            filtrada = filtrada.stream()
+                    .filter(c -> (c.getCajero() != null && c.getCajero().toLowerCase().contains(query)) ||
+                            String.valueOf(c.getIdCaja()).contains(query))
+                    .collect(Collectors.toList());
+        }
+
+        boolean mostrarActivos = chkActivos.isSelected();
+        boolean mostrarCancelados = chkCancelados.isSelected();
+
+        if (!mostrarActivos) {
+            filtrada.removeIf(c -> c.getEstado().equalsIgnoreCase("CERRADA") || c.getEstado().equalsIgnoreCase("Vigente"));
+        }
+        if (!mostrarCancelados) {
+            filtrada.removeIf(c -> c.getEstado().equalsIgnoreCase("Cancelado"));
+        }
+
+        if (chkAscendente.isSelected()) {
+            filtrada.sort((c1, c2) -> Double.compare(c1.getMontoReal(), c2.getMontoReal()));
+        } else if (chkDescendente.isSelected()) {
+            filtrada.sort((c1, c2) -> Double.compare(c2.getMontoReal(), c1.getMontoReal()));
+        } else if (chkAntiguos.isSelected()) {
+            filtrada.sort((c1, c2) -> {
+                if (c1.getFecha() == null || c2.getFecha() == null) return 0;
+                return c1.getFecha().compareTo(c2.getFecha());
+            });
+        } else if (chkRecientes.isSelected()) {
+            filtrada.sort((c1, c2) -> {
+                if (c1.getFecha() == null || c2.getFecha() == null) return 0;
+                return c2.getFecha().compareTo(c1.getFecha());
+            });
+        }
+
         renderizarCards(filtrada);
     }
 
@@ -263,9 +349,25 @@ public class HistorialCortes extends JFrame {
         String horaCierreStr = (c.getFecha() != null) ? sdfHora.format(c.getFecha()) : "--:--";
         String horaAperturaStr = (c.getFechaApertura() != null) ? sdfHora.format(c.getFechaApertura()) : "--:--";
 
-        boolean isVigente = c.getEstado().equalsIgnoreCase("Vigente");
+        boolean isVigente = c.getEstado().equalsIgnoreCase("CERRADA") || c.getEstado().equalsIgnoreCase("Vigente");
         String estadoColor = isVigente ? "#2ECC71" : "#8B7369";
+
+        double dif = c.getDiferencia();
+        String colorDiferencia = (dif == 0) ? "#2ECC71" : "#D32F2F";
+
         String nombreSupervisor = control.obtenerNombreSupervisorAsociado(c.getIdCajero());
+        String nombreCajero = (c.getCajero() != null) ? c.getCajero() : "Sin nombre";
+
+        StringBuilder cancelacionHtml = new StringBuilder();
+        if (c.getEstado().equalsIgnoreCase("Cancelado")) {
+            String mot = (c.getMotivoCancelacion() != null && !c.getMotivoCancelacion().isEmpty())
+                    ? c.getMotivoCancelacion() : "No especificado por el supervisor.";
+
+            cancelacionHtml.append("<table width='100%' cellpadding='6' style='border: 1px solid #D32F2F; color:#D32F2F; background-color:#FFF4F4; margin-bottom:15px;'>")
+                    .append("<tr><td><b> CORTE CANCELADO</b><br>")
+                    .append("<span style='color:#333; font-size:11px;'><b>Motivo de Baja:</b> <i>").append(mot).append("</i></span></td></tr>")
+                    .append("</table>");
+        }
 
         StringBuilder conceptosHtml = new StringBuilder();
         if (c.getListaDesglose() != null && !c.getListaDesglose().isEmpty()) {
@@ -280,6 +382,10 @@ public class HistorialCortes extends JFrame {
             conceptosHtml.append("<tr><td style='font-style:italic;'>Sin Desgloses</td><td align='right'>$").append(String.format("%,.2f", c.getMontoReal())).append("</td></tr>");
         }
 
+        String motivoStr = (c.getObservaciones() != null && !c.getObservaciones().isEmpty())
+                ? c.getObservaciones()
+                : "Sin observaciones registradas en este corte.";
+
         JTextPane txt = new JTextPane();
         txt.setContentType("text/html");
         txt.setEditable(false);
@@ -293,9 +399,12 @@ public class HistorialCortes extends JFrame {
                 + "<span style='color:#999; font-style:italic;'>ESTADO: <b style='color:" + estadoColor + ";'>" + c.getEstado().toUpperCase() + "</b></span>"
                 + "</center>"
                 + "<hr style='color:#ccc; background-color:#ccc; height:1px; border:none; margin-top:15px;'>"
-                + "<br><i style='color:#777;'>FOLIO DE CORTE: CC-" + c.getId() + "</i><br>"
-                + "<br><i style='color:#777;'>CAJERO: " + c.getCajero() + "</i><br>"
+                + "<br><i style='color:#777;'>FOLIO DE CORTE: CC-" + c.getIdCaja() + "</i><br>"
+                + "<br><i style='color:#777;'>CAJERO: " + nombreCajero + "</i><br>"
                 + "<br><i style='color:#777;'>TURNO: (" + horaAperturaStr + " - " + horaCierreStr + ")</i><br><br>"
+
+                + cancelacionHtml.toString()
+
                 + "<table width='100%' cellspacing='0' cellpadding='2' style='color:#555;'>"
                 + "<tr><th align='left' style='color:#2ECC71; font-style:italic; border-bottom:1px solid #555;'>Concepto</th>"
                 + "<th align='right' style='color:#2ECC71; font-style:italic; border-bottom:1px solid #555;'>Monto</th></tr>"
@@ -310,13 +419,17 @@ public class HistorialCortes extends JFrame {
                 + "<tr><td style='font-style:italic;'>Esperado:</td><td align='right'>$" + String.format("%,.2f", c.getMontoEsperado()) + "</td></tr>"
                 + "<tr><td style='font-style:italic;'>Real:</td><td align='right'>$" + String.format("%,.2f", c.getMontoReal()) + "</td></tr>"
                 + "<tr><td colspan='2' style='border-bottom: 1px dotted #aaa; padding:0;'></td></tr>"
-                + "<tr><td style='color:#2ECC71; font-weight:bold; font-style:italic;'>Diferencia:</td>"
-                + "<td align='right' style='color:#2ECC71; font-weight:bold;'>$" + String.format("%,.2f", c.getDiferencia()) + "</td></tr>"
-                + "</table><br><br><br>"
+                + "<tr><td style='color:" + colorDiferencia + "; font-weight:bold; font-style:italic;'>Diferencia:</td>"
+                + "<td align='right' style='color:" + colorDiferencia + "; font-weight:bold;'>$" + String.format("%,.2f", c.getDiferencia()) + "</td></tr>"
+                + "</table><br>"
+                + ""
+                + "<table width='100%' cellpadding='6' style='border: 1px solid " + colorDiferencia + "; color:#555; background-color:#FFFDFD;'>"
+                + "<tr><td><b>Motivo / Observaciones del Corte:</b><br><i style='color:#333; font-size:11px;'>" + motivoStr + "</i></td></tr>"
+                + "</table><br><br>"
                 + "<table width='100%' style='color:#999;'>"
                 + "<tr>"
-                + "<td align='center'>_________________<br><br><i>FIRMA<br>" + c.getCajero().toUpperCase() + "</i></td>"
-                + "<td align='center'>_________________<br><br><i>FIRMA<br>" + nombreSupervisor.toUpperCase() + "</i></td>"
+                + "<td align='center'>_________________<br><br><i>FIRMA<br>" + nombreCajero.toUpperCase() + "</i></td>"
+                + "<td align='center'>_________________<br><br><i>FIRMA<br>" + (nombreSupervisor != null ? nombreSupervisor.toUpperCase() : "SUPERVISOR") + "</i></td>"
                 + "</tr>"
                 + "</table>"
                 + "</body></html>";
@@ -342,9 +455,11 @@ public class HistorialCortes extends JFrame {
             setCursor(new Cursor(Cursor.HAND_CURSOR));
             setMaximumSize(new Dimension(800, 85));
 
-            boolean isVigente = c.getEstado().equalsIgnoreCase("Vigente");
+            boolean isVigente = c.getEstado().equalsIgnoreCase("CERRADA") || c.getEstado().equalsIgnoreCase("Vigente");
 
-            JLabel lblPill = new JLabel(c.getEstado(), SwingConstants.CENTER) {
+            String textoEstado = c.getEstado().equalsIgnoreCase("CERRADA") ? "Vigente" : c.getEstado();
+
+            JLabel lblPill = new JLabel(textoEstado, SwingConstants.CENTER) {
                 @Override
                 protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g.create();
@@ -370,7 +485,8 @@ public class HistorialCortes extends JFrame {
             lblFecha.setFont(new Font("Segoe UI", Font.BOLD, 15));
             lblFecha.setForeground(Color.BLACK);
 
-            JLabel lblCajero = new JLabel(c.getCajero());
+            String nombreCajero = (c.getCajero() != null) ? c.getCajero() : "Sin nombre";
+            JLabel lblCajero = new JLabel(nombreCajero);
             lblCajero.setFont(new Font("Segoe UI", Font.BOLD, 11));
             lblCajero.setForeground(new Color(50, 50, 50));
 

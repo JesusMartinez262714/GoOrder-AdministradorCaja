@@ -34,8 +34,7 @@ public interface INegocioCorte {
     List<cajeroDTO> consultarCajerosConTurnoActivo();
 
     boolean eliminarCorteFisico(int idCorte);
-
-    boolean cancelarCorteLogico(int idCorte);
+    boolean cancelarCorteLogico(corteCajaDTO corte, String motivo);
 
     boolean liquidarAdeudo(int idCajero, double montoPagado);
 }

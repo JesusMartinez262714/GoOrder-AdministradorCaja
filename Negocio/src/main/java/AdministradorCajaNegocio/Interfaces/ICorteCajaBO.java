@@ -12,4 +12,6 @@ public interface ICorteCajaBO {
     boolean guardarNuevoCorte(corteCajaDTO datosCorte, List<desgloseDTO> listaDesgloses);
 
     List<corteCajaDTO> consultarCortesRealizados(Date inicio, Date fin);
+
+    boolean eliminarCorte(int idCaja);
 }

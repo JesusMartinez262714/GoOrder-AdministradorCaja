@@ -19,6 +19,7 @@ public class ConciliacionFinal extends JFrame {
     private cajeroDTO empleado;
     private List<desgloseDTO> desgloses;
     private String rutaImagen;
+    private int idCorteEditando;
 
     private final Color COLOR_FONDO = new Color(34, 34, 34);
     private final Color COLOR_TEXTO = new Color(240, 240, 240);
@@ -28,13 +29,14 @@ public class ConciliacionFinal extends JFrame {
     private final Color COLOR_ROJO = new Color(255, 107, 107);
     private final Color COLOR_DIVISOR = new Color(85, 85, 85);
 
-    public ConciliacionFinal(Control control, double esperado, double contado, cajeroDTO emp, List<desgloseDTO> desgloses, String rutaImg) {
+    public ConciliacionFinal(Control control, double esperado, double contado, cajeroDTO emp, List<desgloseDTO> desgloses, String rutaImg, int idCorteEditando) {
         this.control = control;
         this.esperado = esperado;
         this.contado = contado;
         this.empleado = emp;
         this.desgloses = desgloses;
         this.rutaImagen = rutaImg;
+        this.idCorteEditando = idCorteEditando;
 
         initComponents();
         configurarVentana();
@@ -113,7 +115,7 @@ public class ConciliacionFinal extends JFrame {
                 }
             }
 
-            control.guardarCorteFinal(esperado, contado, empleado.getIdCajero(), desgloses, rutaImagen, nota);
+            control.guardarCorteFinal(esperado, contado, empleado.getIdCajero(), desgloses, rutaImagen, nota, idCorteEditando);
             this.dispose();
             control.volverAResumen();
         });

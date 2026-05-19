@@ -2,11 +2,13 @@ package AdministradorCajaPersistencia.DAOs;
 
 import AdministradorCajaPersistencia.Entitys.supervisor;
 import AdministradorCajaPersistencia.Interfaces.ISupervisorDAO;
+import AdministradorCajaPersistencia.Mappers.SupervisorPersistenciaMapper;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,13 +24,7 @@ public class supervisorDAO implements ISupervisorDAO {
     public supervisor consultarPorId(int id) {
         try {
             Document doc = coleccion.find(Filters.eq("idSupervisor", id)).first();
-            if (doc != null) {
-                return new supervisor(
-                        doc.getInteger("idSupervisor"),
-                        doc.getString("nombre"),
-                        doc.getString("apellido")
-                );
-            }
+            return SupervisorPersistenciaMapper.documentToEntity(doc);
         } catch (Exception e) {
             System.err.println("Error al consultar supervisor por ID: " + e.getMessage());
         }
@@ -44,11 +40,10 @@ public class supervisorDAO implements ISupervisorDAO {
                     : new Document();
 
             for (Document doc : coleccion.find(filtro)) {
-                lista.add(new supervisor(
-                        doc.getInteger("idSupervisor"),
-                        doc.getString("nombre"),
-                        doc.getString("apellido")
-                ));
+                supervisor s = SupervisorPersistenciaMapper.documentToEntity(doc);
+                if (s != null) {
+                    lista.add(s);
+                }
             }
         } catch (Exception e) {
             System.err.println("Error al obtener supervisores: " + e.getMessage());
@@ -59,14 +54,11 @@ public class supervisorDAO implements ISupervisorDAO {
     @Override
     public boolean registrarSupervisor(supervisor entidad) {
         try {
-            int nuevoId = (int) (System.currentTimeMillis() / 1000);
-            Document doc = new Document("idSupervisor", nuevoId)
-                    .append("nombre", entidad.getNombre())      // Campo 1
-                    .append("apellido", entidad.getApellido()); // Campo 2
-
+            Document doc = SupervisorPersistenciaMapper.entityToDocument(entidad);
             coleccion.insertOne(doc);
             return true;
         } catch (Exception e) {
+            System.err.println("Error al registrar supervisor: " + e.getMessage());
             return false;
         }
     }
@@ -74,12 +66,20 @@ public class supervisorDAO implements ISupervisorDAO {
     @Override
     public boolean editarSupervisor(supervisor entidad) {
         try {
-            coleccion.updateOne(
-                    Filters.eq("idSupervisor", entidad.getIdSupervisor()),
+            Bson actualizaciones = Updates.combine(
+                    Updates.set("nombre", entidad.getNombre()),
+                    Updates.set("apellido", entidad.getApellido()),
                     Updates.set("nombreCompleto", entidad.getNombreCompleto())
             );
-            return true;
+
+            long modificados = coleccion.updateOne(
+                    Filters.eq("idSupervisor", entidad.getIdSupervisor()),
+                    actualizaciones
+            ).getModifiedCount();
+
+            return modificados > 0;
         } catch (Exception e) {
+            System.err.println("Error al editar supervisor: " + e.getMessage());
             return false;
         }
     }
@@ -87,9 +87,10 @@ public class supervisorDAO implements ISupervisorDAO {
     @Override
     public boolean eliminarSupervisor(int id) {
         try {
-            coleccion.deleteOne(Filters.eq("idSupervisor", id));
-            return true;
+            long borrados = coleccion.deleteOne(Filters.eq("idSupervisor", id)).getDeletedCount();
+            return borrados > 0;
         } catch (Exception e) {
+            System.err.println("Error al eliminar supervisor: " + e.getMessage());
             return false;
         }
     }

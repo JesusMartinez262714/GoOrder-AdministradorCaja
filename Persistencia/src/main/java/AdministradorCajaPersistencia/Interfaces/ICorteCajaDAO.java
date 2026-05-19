@@ -10,11 +10,10 @@ public interface ICorteCajaDAO {
     boolean guardarNuevoCorte(corteCaja entidad);
     List<corteCaja> consultarCortesRealizados(Date inicio, Date fin);
     boolean eliminarCorte(int idCorte);
-    boolean actualizarEstadoCorte(int idCorte, String nuevoEstado);
-    double obtenerDoubleSeguro(Document doc, String campo);
 
-    // Métodos nuevos para soportar la unificación de la colección "caja"
     boolean tieneAperturaActiva(int idCajero);
     List<Integer> obtenerIdsCajerosConCajaAbierta();
     Document consultarUltimaCaja(int idCajero);
+
+    boolean actualizarEstadoCorte(int idCaja, String nuevoEstado, String motivoCancelacion);
 }

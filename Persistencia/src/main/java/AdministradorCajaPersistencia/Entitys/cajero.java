@@ -5,6 +5,7 @@ public class cajero {
     private String nombre;
     private String apellido;
     private String turno;
+    private double montoAdeudo;
 
     public cajero() {}
 
@@ -14,9 +15,11 @@ public class cajero {
         this.apellido = apellido;
         this.turno = turno;
     }
+
     public String getNombreCompleto() {
         return (nombre != null ? nombre : "") + " " + (apellido != null ? apellido : "");
     }
+
     public int getIdCajero() {
         return idCajero;
     }
@@ -47,5 +50,13 @@ public class cajero {
 
     public void setTurno(String turno) {
         this.turno = turno;
+    }
+
+    public double getMontoAdeudo() {
+        return montoAdeudo;
+    }
+
+    public void setMontoAdeudo(double montoAdeudo) {
+        this.montoAdeudo = montoAdeudo;
     }
 }

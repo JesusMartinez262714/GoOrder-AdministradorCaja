@@ -15,9 +15,7 @@ import java.util.stream.Collectors;
 public class GestionCajerosBO implements IGestionCajerosBO {
 
     private ICajeroDAO CajeroDAO;
-
     private IAdeudoDAO AdeudoDAO;
-
 
     public GestionCajerosBO(ICajeroDAO cajeroDAO, IAdeudoDAO adeudoDAO) {
         this.CajeroDAO = cajeroDAO;
@@ -55,7 +53,16 @@ public class GestionCajerosBO implements IGestionCajerosBO {
             cajeroDTO dto = CajeroMapper.entityToDTO(e);
 
             List<adeudo> deudas = AdeudoDAO.consultarPendientesPorCajero(e.getIdCajero());
-            dto.setTieneAdeudo(deudas != null && !deudas.isEmpty());
+
+            double montoTotalAdeudo = 0.0;
+            if (deudas != null) {
+                for (adeudo a : deudas) {
+                    montoTotalAdeudo += a.getMonto();
+                }
+            }
+
+            dto.setMontoAdeudo(montoTotalAdeudo);
+            dto.setTieneAdeudo(montoTotalAdeudo > 0.01);
 
             listaCompleta.add(dto);
         }

@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- */
-
 package org.itson.infraestructura;
 
 import java.io.DataInputStream;
@@ -9,9 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,14 +18,6 @@ import java.util.Map;
  */
 public class Infraestructura {
 
-    /**
-     * El método principal que arranca nuestro simulador de banco.
-     * Primero, inventa unas tarjetas y referencias con dinero falso para hacer pruebas.
-     * Luego, abre un canal de comunicación (el puerto 9001) y se queda esperando infinitamente
-     * a que la aplicación GoOrder se conecte para intentar cobrar un pedido.
-     *
-     * @param args Argumentos que se pueden pasar al ejecutar el programa (no se usan aquí).
-     */
     public static void main(String[] args) {
         Map<String, Double> tarjetas = new HashMap<>();
         tarjetas.put("12345", 5000.00);
@@ -81,9 +67,14 @@ public class Infraestructura {
                         }
                     }
 
+                    else if (cuenta.equalsIgnoreCase("EFECTIVO") || cuenta.equals("1")) {
+                        pagoAprobado = true;
+                        motivo = "Pedido en Efectivo registrado para cobro presencial en ventanilla.";
+                    }
+
+                    System.out.println("   [Resultado]: " + motivo);
+
                     salida.writeBoolean(pagoAprobado);
-
-
 
                 } catch (IOException e) {
                     System.out.println("Error de red: " + e.getMessage());

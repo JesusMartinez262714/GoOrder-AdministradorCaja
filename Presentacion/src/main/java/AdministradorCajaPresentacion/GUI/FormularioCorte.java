@@ -3,6 +3,7 @@ package AdministradorCajaPresentacion.GUI;
 import AdministradorCajaDTOs.cajeroDTO;
 import AdministradorCajaDTOs.corteCajaDTO;
 import AdministradorCajaDTOs.desgloseDTO;
+import AdministradorCajaDTOs.resumenVentasDTO;
 import AdministradorCajaPresentacion.Control.Control;
 
 import java.awt.*;
@@ -22,7 +23,8 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
     private JTextField txtSupervisor;
     private JLabel lblTotalManualBadge, lblFaltanteBadge, lblPreviewImagen;
     private String rutaImagenSeleccionada = "";
-    private Integer idCorteEditando = null; // Para saber si estamos creando o editando
+    private int idCorteEditando = -1;
+    private double montoEsperadoEditando = 0.0;
 
     private final Color COLOR_FONDO = new Color(34, 34, 34);
     private final Color COLOR_TEXTO = new Color(240, 240, 240);
@@ -298,7 +300,7 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
 
         cajeroDTO emp = (cajeroDTO) cmbEmpleados.getSelectedItem();
         if (emp != null) {
-            double esperado = control.obtenerMontoEsperado(emp.getIdCajero());
+            double esperado = (this.idCorteEditando != -1) ? this.montoEsperadoEditando : control.obtenerMontoEsperado(emp.getIdCajero());
             lblFaltanteBadge.setText(String.format("$%.0f", Math.max(0, esperado - total)));
         } else {
             lblFaltanteBadge.setText("$0");
@@ -306,34 +308,70 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
     }
 
     private void realizarCorte() {
+        cajeroDTO emp = (cmbEmpleados.getSelectedItem() != null) ? (cajeroDTO) cmbEmpleados.getSelectedItem() : null;
+        if (emp == null) return;
+
         double totalContado = 0;
         List<desgloseDTO> desgloses = new ArrayList<>();
+
+        resumenVentasDTO resumenReal = null;
+        if (this.idCorteEditando == -1) {
+            resumenReal = control.obtenerResumenCajero(emp.getIdCajero());
+        }
+
         for (Component c : pnlContenedorFilas.getComponents()) {
             if (c instanceof FilaMontoPanel) {
                 FilaMontoPanel f = (FilaMontoPanel) c;
-                if (f.getMetodo().trim().isEmpty()) {
+                String metodoStr = f.getMetodo().trim();
+                double montoIngresado = f.getMonto();
+
+                if (metodoStr.isEmpty()) {
                     JOptionPane.showMessageDialog(this, "Selecciona un método en todas las filas.", "Faltante", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
-                if (f.getMonto() < 0) {
+                if (montoIngresado < 0) {
                     JOptionPane.showMessageDialog(this, "Corrige los montos en rojo.", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
-                totalContado += f.getMonto();
-                desgloses.add(new desgloseDTO(f.getMonto(), 0, f.getMetodo()));
+
+                if (this.idCorteEditando == -1 && montoIngresado > 0 && resumenReal != null) {
+                    boolean errorMetodoInvalido = false;
+
+                    switch (metodoStr.toLowerCase()) {
+                        case "efectivo":
+                            if (resumenReal.getTotalEfectivo() <= 0) errorMetodoInvalido = true;
+                            break;
+                        case "tarjeta":
+                            if (resumenReal.getTotalTarjeta() <= 0) errorMetodoInvalido = true;
+                            break;
+                        case "app":
+                            if (resumenReal.getTotalApp() <= 0) errorMetodoInvalido = true;
+                            break;
+                        case "referencia":
+                            if (resumenReal.getTotalReferencia() <= 0) errorMetodoInvalido = true;
+                            break;
+                    }
+
+                    if (errorMetodoInvalido) {
+                        JOptionPane.showMessageDialog(this,
+                                "Estás declarando dinero en '" + metodoStr + "', pero el sistema indica que no hubo ventas con este método.\nRevisa el desglose y corrige el error.",
+                                "Método de Pago Inválido", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                }
+
+                totalContado += montoIngresado;
+                desgloses.add(new desgloseDTO(montoIngresado, 0, metodoStr));
             }
         }
+
         if (totalContado == 0 && desgloses.isEmpty()) {
             JOptionPane.showMessageDialog(this, "No hay montos físicos.", "Vacío", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        cajeroDTO emp = (cajeroDTO) cmbEmpleados.getSelectedItem();
-        if (emp != null) {
-            if(idCorteEditando != null){
-                control.eliminarCorte(idCorteEditando);
-            }
-            control.mostrarConciliacionFinal(control.obtenerMontoEsperado(emp.getIdCajero()), totalContado, emp, desgloses, rutaImagenSeleccionada);
-        }
+
+        double esperadoFinal = (this.idCorteEditando != -1) ? this.montoEsperadoEditando : control.obtenerMontoEsperado(emp.getIdCajero());
+        control.mostrarConciliacionFinal(esperadoFinal, totalContado, emp, desgloses, rutaImagenSeleccionada, idCorteEditando);
     }
 
     public void cargarEmpleados(List<cajeroDTO> empleados) {
@@ -344,7 +382,8 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
     }
 
     public void limpiarFormulario() {
-        this.idCorteEditando = null;
+        this.idCorteEditando = -1;
+        this.montoEsperadoEditando = 0.0;
         pnlContenedorFilas.removeAll();
         rutaImagenSeleccionada = "";
         lblPreviewImagen.setIcon(null);
@@ -355,10 +394,11 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         agregarFila();
     }
 
-
     public void cargarCorteParaEdicion(corteCajaDTO corte) {
         limpiarFormulario();
-        this.idCorteEditando = corte.getId();
+
+        this.idCorteEditando = corte.getIdCaja();
+        this.montoEsperadoEditando = corte.getMontoEsperado();
 
         for (int i = 0; i < cmbEmpleados.getItemCount(); i++) {
             if (cmbEmpleados.getItemAt(i).getIdCajero() == corte.getIdCajero()) {
@@ -368,7 +408,6 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         }
 
         pnlContenedorFilas.removeAll();
-
 
         if (corte.getListaDesglose() != null && !corte.getListaDesglose().isEmpty()) {
             for (desgloseDTO d : corte.getListaDesglose()) {

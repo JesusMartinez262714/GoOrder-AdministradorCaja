@@ -9,7 +9,6 @@ import AdministradorCajaPersistencia.Entitys.cajero;
 import AdministradorCajaPersistencia.Entitys.corteCaja;
 import AdministradorCajaPersistencia.Entitys.desgloseMontos;
 import AdministradorCajaPersistencia.Interfaces.ICorteCajaDAO;
-import AdministradorCajaPersistencia.Interfaces.IDesgloseMontosDAO;
 import AdministradorCajaPersistencia.Interfaces.ICajeroDAO;
 
 import java.util.ArrayList;
@@ -20,18 +19,16 @@ import java.util.stream.Collectors;
 public class corteCajaBO implements ICorteCajaBO {
 
     private final ICorteCajaDAO corteDAO;
-    private final IDesgloseMontosDAO desgloseDAO;
     private final ICajeroDAO cajeroDAO;
 
-    public corteCajaBO(ICorteCajaDAO corteDAO, IDesgloseMontosDAO desgloseDAO, ICajeroDAO cajeroDAO) {
+    public corteCajaBO(ICorteCajaDAO corteDAO, ICajeroDAO cajeroDAO) {
         this.corteDAO = corteDAO;
-        this.desgloseDAO = desgloseDAO;
         this.cajeroDAO = cajeroDAO;
     }
 
     @Override
     public double calcularDiferencia(double totalEsperado, double totalReal) {
-        return totalEsperado - totalReal;
+        return totalReal - totalEsperado;
     }
 
     @Override
@@ -43,18 +40,14 @@ public class corteCajaBO implements ICorteCajaBO {
     public boolean guardarNuevoCorte(corteCajaDTO datosCorte, List<desgloseDTO> listaDesgloses) {
         corteCaja entidad = CorteCajaMapper.dtoToEntity(datosCorte);
 
-        if (corteDAO.guardarNuevoCorte(entidad)) {
+        if (listaDesgloses != null) {
             List<desgloseMontos> desgloses = listaDesgloses.stream()
-                    .map(d -> {
-                        desgloseMontos e = DesgloseMapper.dtoToEntity(d);
-                        e.setIdCorte(entidad.getId());
-                        return e;
-                    })
+                    .map(DesgloseMapper::dtoToEntity)
                     .collect(Collectors.toList());
-
-            return desgloseDAO.insertarListaDesgloses(desgloses, entidad.getId());
+            entidad.setListaDesglose(desgloses);
         }
-        return false;
+
+        return corteDAO.guardarNuevoCorte(entidad);
     }
 
     @Override
@@ -69,15 +62,20 @@ public class corteCajaBO implements ICorteCajaBO {
 
                 corteCajaDTO dto = CorteCajaMapper.entityToDTO(e, nombre);
 
-                List<desgloseDTO> desglosesDTO = desgloseDAO.consultarPorCorte(e.getId())
-                        .stream()
-                        .map(DesgloseMapper::entityToDTO)
-                        .collect(Collectors.toList());
+                if (e.getListaDesglose() != null) {
+                    List<desgloseDTO> desglosesDTO = e.getListaDesglose().stream()
+                            .map(DesgloseMapper::entityToDTO)
+                            .collect(Collectors.toList());
+                    dto.setListaDesglose(desglosesDTO);
+                }
 
-                dto.setListaDesglose(desglosesDTO);
                 listaFinal.add(dto);
             }
         }
         return listaFinal;
+    }
+    @Override
+    public boolean eliminarCorte(int idCaja) {
+        return corteDAO.eliminarCorte(idCaja);
     }
 }

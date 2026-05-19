@@ -56,24 +56,21 @@ public class AperturaCaja extends JFrame {
         pnlSidebar.add(lblLogo);
         pnlSidebar.add(Box.createRigidArea(new Dimension(0, 40)));
 
-        // Botones de Operación
         JButton btnCajaTurno = new BotonRedondeado("Caja/Turno", false);
         btnCajaTurno.addActionListener(e -> control.volverAResumen());
 
-        JButton btnAperturaCaja = new BotonRedondeado("AperturaCaja", true); // ACTIVO
+        JButton btnAperturaCaja = new BotonRedondeado("AperturaCaja", true);
 
-        // Botones de Gestión (Personal)
         JButton btnGestionCajeros = new BotonRedondeado("GestionCajeros", false);
         btnGestionCajeros.addActionListener(e -> control.mostrarGestionCajeros());
 
         JButton btnGestionSupervisores = new BotonRedondeado("Supervisores", false);
         btnGestionSupervisores.addActionListener(e -> control.mostrarGestionSupervisores());
 
-        // Organización
         pnlSidebar.add(btnCajaTurno);
         pnlSidebar.add(Box.createRigidArea(new Dimension(0, 20)));
         pnlSidebar.add(btnAperturaCaja);
-        pnlSidebar.add(Box.createRigidArea(new Dimension(0, 40))); // Separador visual
+        pnlSidebar.add(Box.createRigidArea(new Dimension(0, 40)));
         pnlSidebar.add(btnGestionCajeros);
         pnlSidebar.add(Box.createRigidArea(new Dimension(0, 20)));
         pnlSidebar.add(btnGestionSupervisores);
@@ -137,7 +134,6 @@ public class AperturaCaja extends JFrame {
     private void validarYAbrir() {
         String montoStr = txtMontoInicial.getText().trim();
 
-        // Validación de monto usando Apache Commons Validator
         if (!GenericValidator.isDouble(montoStr) || Double.parseDouble(montoStr) < 0) {
             txtMontoInicial.setForeground(COLOR_ROJO);
             JOptionPane.showMessageDialog(this, "Por favor, ingresa un monto válido (ej. 500.00)", "Monto Inválido", JOptionPane.WARNING_MESSAGE);

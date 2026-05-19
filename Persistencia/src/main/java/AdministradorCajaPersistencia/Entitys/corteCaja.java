@@ -4,8 +4,8 @@ import java.util.Date;
 import java.util.List;
 
 public class corteCaja {
-    private int id;
-    private int idApertura;
+    private int idCaja;
+    private Date fechaApertura;
     private Date fecha;
     private double totalEsperadoSistema;
     private double totalRealDeclarado;
@@ -14,25 +14,26 @@ public class corteCaja {
     private int idCajero;
     private int idSupervisor;
     private String cajero;
-
+    private String observaciones;
     private List<desgloseMontos> listaDesglose;
+    private String motivoCancelacion;
 
     public corteCaja() {}
 
-    public int getId() {
-        return id;
+    public int getIdCaja() {
+        return idCaja;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public void setIdCaja(int idCaja) {
+        this.idCaja = idCaja;
     }
 
-    public int getIdApertura() {
-        return idApertura;
+    public Date getFechaApertura() {
+        return fechaApertura;
     }
 
-    public void setIdApertura(int idApertura) {
-        this.idApertura = idApertura;
+    public void setFechaApertura(Date fechaApertura) {
+        this.fechaApertura = fechaApertura;
     }
 
     public Date getFecha() {
@@ -86,6 +87,8 @@ public class corteCaja {
     public int getIdSupervisor() {
         return idSupervisor;
     }
+    public String getMotivoCancelacion() { return motivoCancelacion; }
+    public void setMotivoCancelacion(String motivoCancelacion) { this.motivoCancelacion = motivoCancelacion; }
 
     public void setIdSupervisor(int idSupervisor) {
         this.idSupervisor = idSupervisor;
@@ -97,6 +100,14 @@ public class corteCaja {
 
     public void setCajero(String cajero) {
         this.cajero = cajero;
+    }
+
+    public String getObservaciones() {
+        return observaciones;
+    }
+
+    public void setObservaciones(String observaciones) {
+        this.observaciones = observaciones;
     }
 
     public List<desgloseMontos> getListaDesglose() {
