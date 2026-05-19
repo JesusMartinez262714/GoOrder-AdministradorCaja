@@ -13,7 +13,7 @@ import java.util.Locale;
 /**
  * Clase encargada de la generación de reportes y comprobantes en formato PDF.
  * Utiliza la librería iText para estructurar y diseñar el ticket físico del corte
- * de caja, incluyendo desgloses, estados de vigencia, detalles de arqueo y evidencia gráfica.
+ * de caja, incluyendo desgloses, estados de vigencia y detalles de arqueo.
  * * @author Jesus Manuel Martinez Cortez
  */
 public class JasperPDFAdapter {
@@ -47,6 +47,7 @@ public class JasperPDFAdapter {
             Font fontSubtitulo = FontFactory.getFont(FontFactory.COURIER_OBLIQUE, 10, Font.NORMAL, COLOR_GRIS);
             Font fontNormal = FontFactory.getFont(FontFactory.COURIER_OBLIQUE, 10, Font.NORMAL, COLOR_GRIS_OSCURO);
             Font fontGreenBold = FontFactory.getFont(FontFactory.COURIER_OBLIQUE, 10, Font.BOLD, COLOR_ACCENTO);
+            Font fontGrisChico = FontFactory.getFont(FontFactory.COURIER_OBLIQUE, 8, Font.NORMAL, COLOR_GRIS);
 
             SimpleDateFormat sdfFecha = new SimpleDateFormat("dd/MM/yyyy", new Locale("es", "MX"));
             SimpleDateFormat sdfHora = new SimpleDateFormat("hh:mm a", new Locale("es", "MX"));
@@ -235,17 +236,17 @@ public class JasperPDFAdapter {
                     Image img = Image.getInstance(imageBytes);
                     img.setAlignment(Element.ALIGN_CENTER);
 
-                    img.scaleToFit(260f, 200f);
+                    img.scaleToFit(80f, 80f);
 
                     document.add(new Paragraph("\n"));
-                    Paragraph lblEvidencia = new Paragraph("EVIDENCIA ADJUNTA:", fontGreenBold);
+                    Paragraph lblEvidencia = new Paragraph("EVIDENCIA DE AUDITORÍA", fontGrisChico);
                     lblEvidencia.setAlignment(Element.ALIGN_CENTER);
                     document.add(lblEvidencia);
-                    document.add(new Paragraph("\n"));
 
+                    document.add(new Paragraph("\n"));
                     document.add(img);
                 } catch (Exception ex) {
-                    System.err.println("No se pudo renderizar la imagen de evidencia en el PDF: " + ex.getMessage());
+                    System.err.println("No se pudo renderizar la evidencia en el PDF: " + ex.getMessage());
                 }
             }
 

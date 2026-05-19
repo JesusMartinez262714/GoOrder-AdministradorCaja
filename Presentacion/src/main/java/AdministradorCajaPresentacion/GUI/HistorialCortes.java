@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  * Pantalla que muestra el historial de todos los cortes de caja registrados en el sistema.
  * Permite buscar cortes por cajero o folio, aplicar filtros por estado y ordenar la lista.
  * * @author Jesus Manuel Martinez Cortez
- * @version 1.0
+ * @version 1.1
  */
 public class HistorialCortes extends JFrame {
 
@@ -375,7 +375,6 @@ public class HistorialCortes extends JFrame {
                 return c1.getFecha().compareTo(c2.getFecha());
             });
         } else if (chkRecientes.isSelected()) {
-            // 🔥 CORRECCIÓN: Se cambió la variable 'g' inválida por el parámetro 'c2'
             filtrada.sort((c1, c2) -> {
                 if (c1.getFecha() == null || c2.getFecha() == null) return 0;
                 return c2.getFecha().compareTo(c1.getFecha());
@@ -402,8 +401,8 @@ public class HistorialCortes extends JFrame {
 
     /**
      * Reconstruye de forma dinámica el diseño del ticket en formato HTML para mostrar
-     * detalladamente el arqueo, desgloses y observaciones del corte seleccionado.
-     * * @param c Objeto DTO del corte de caja seleccionado.
+     * detalladamente el arqueo, desgloses y observaciones, e incrusta la evidencia gráfica
+     * de forma nativa en la parte inferior absoluta del documento.
      */
     private void actualizarDetalleTicket(corteCajaDTO c) {
         this.corteSeleccionado = c;
@@ -492,16 +491,46 @@ public class HistorialCortes extends JFrame {
                 + ""
                 + "<table width='100%' cellpadding='6' style='border: 1px solid " + colorDiferencia + "; color:#555; background-color:#FFFDFD;'>"
                 + "<tr><td><b>Motivo / Observaciones del Corte:</b><br><i style='color:#333; font-size:11px;'>" + motivoStr + "</i></td></tr>"
-                + "</table><br><br>"
-                + "<table width='100%' style='color:#999;'>"
+                + "</table><br>"
+
+                + "<br><table width='100%' style='color:#999;'>"
                 + "<tr>"
                 + "<td align='center'>_________________<br><br><i>FIRMA<br>" + nombreCajero.toUpperCase() + "</i></td>"
                 + "<td align='center'>_________________<br><br><i>FIRMA<br>" + (nombreSupervisor != null ? nombreSupervisor.toUpperCase() : "SUPERVISOR") + "</i></td>"
                 + "</tr>"
-                + "</table>"
+                + "</table><br><br>"
+
+                + "<center><span style='color:#999; font-size:10px; font-style:italic;'>EVIDENCIA DE AUDITORÍA</span></center>"
                 + "</body></html>";
 
         txt.setText(htmlTicket);
+
+        String base64Image = c.getEvidenciaGrafica();
+        if (base64Image != null && !base64Image.trim().isEmpty()) {
+            try {
+                byte[] imageBytes = java.util.Base64.getDecoder().decode(base64Image);
+                Image awtImage = Toolkit.getDefaultToolkit().createImage(imageBytes);
+
+                Image imagenEscalada = awtImage.getScaledInstance(120, 90, Image.SCALE_SMOOTH);
+                ImageIcon iconoFinal = new ImageIcon(imagenEscalada);
+
+                JLabel lblFotoComponente = new JLabel(iconoFinal);
+                lblFotoComponente.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+                txt.setCaretPosition(txt.getDocument().getLength());
+
+                txt.replaceSelection("\n\n");
+
+                javax.swing.text.SimpleAttributeSet center = new javax.swing.text.SimpleAttributeSet();
+                javax.swing.text.StyleConstants.setAlignment(center, javax.swing.text.StyleConstants.ALIGN_CENTER);
+                txt.getStyledDocument().setParagraphAttributes(txt.getDocument().getLength(), 1, center, false);
+
+                txt.insertComponent(lblFotoComponente);
+
+            } catch (Exception ex) {
+                System.err.println("Error al renderizar el componente nativo de imagen: " + ex.getMessage());
+            }
+        }
 
         JScrollPane scrollPane = new JScrollPane(txt);
         scrollPane.setBorder(null);

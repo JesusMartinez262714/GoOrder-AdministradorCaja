@@ -8,8 +8,9 @@ import java.util.Date;
 /**
  * Clase encargada de transformar los datos de los cortes de caja entre la capa de
  * persistencia (Entidades) y la capa de negocio o presentación (DTOs).
- * Permite traspasar la información de montos, fechas de turno y estados de la caja.
+ * Permite traspasar la información de montos, fechas de turno, estados de la caja y evidencia gráfica.
  * * @author Jesus Manuel Martinez Cortez
+ * @version 1.1
  */
 public class CorteCajaMapper {
 
@@ -38,6 +39,8 @@ public class CorteCajaMapper {
         dto.setFechaApertura(entidad.getFechaApertura());
         dto.setObservaciones(entidad.getObservaciones());
 
+        dto.setEvidenciaGrafica(entidad.getEvidenciaGrafica());
+
         return dto;
     }
 
@@ -64,6 +67,8 @@ public class CorteCajaMapper {
         entidad.setMotivoCancelacion(dto.getMotivoCancelacion());
         entidad.setFechaApertura(dto.getFechaApertura());
         entidad.setObservaciones(dto.getObservaciones());
+
+        entidad.setEvidenciaGrafica(dto.getEvidenciaGrafica());
 
         return entidad;
     }

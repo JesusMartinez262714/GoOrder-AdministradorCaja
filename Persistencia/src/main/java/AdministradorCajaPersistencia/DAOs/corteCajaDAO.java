@@ -18,6 +18,7 @@ import java.util.List;
  * Clase de persistencia encargada de gestionar los flujos de apertura, cierre
  * e historial de los turnos de caja en la colección "caja" de MongoDB.
  * * @author Jesus Manuel Martinez Cortez
+ * @version 1.1
  */
 public class corteCajaDAO implements ICorteCajaDAO {
     private MongoCollection<Document> coleccion;
@@ -152,7 +153,8 @@ public class corteCajaDAO implements ICorteCajaDAO {
                         Updates.set("diferencia", entidad.getDiferencia()),
                         Updates.set("observaciones", entidad.getObservaciones()),
                         Updates.set("desgloses", subDocsDesglose),
-                        Updates.set("estado", "CERRADA")
+                        Updates.set("estado", "CERRADA"),
+                        Updates.set("evidenciaGrafica", entidad.getEvidenciaGrafica()) // Persistencia de la imagen en edición
                 );
             } else {
                 int nuevoId = (int) (System.currentTimeMillis() / 1000);
@@ -170,7 +172,8 @@ public class corteCajaDAO implements ICorteCajaDAO {
                         Updates.set("diferencia", entidad.getDiferencia()),
                         Updates.set("observaciones", entidad.getObservaciones()),
                         Updates.set("desgloses", subDocsDesglose),
-                        Updates.set("estado", "CERRADA")
+                        Updates.set("estado", "CERRADA"),
+                        Updates.set("evidenciaGrafica", entidad.getEvidenciaGrafica()) // Persistencia de la imagen al cerrar caja
                 );
             }
 

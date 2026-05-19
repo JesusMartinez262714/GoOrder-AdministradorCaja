@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
  * Controla operaciones como el cálculo de diferencias, el registro de desgloses
  * de dinero y la consulta del historial de cortes realizados.
  * * @author Jesus Manuel Martinez Cortez
+ * @version 1.1
  */
 public class corteCajaBO implements ICorteCajaBO {
 
@@ -70,7 +71,11 @@ public class corteCajaBO implements ICorteCajaBO {
      */
     @Override
     public boolean guardarNuevoCorte(corteCajaDTO datosCorte, List<desgloseDTO> listaDesgloses) {
+        if (datosCorte == null) return false;
+
         corteCaja entidad = CorteCajaMapper.dtoToEntity(datosCorte);
+
+        entidad.setEvidenciaGrafica(datosCorte.getEvidenciaGrafica());
 
         if (listaDesgloses != null) {
             List<desgloseMontos> desgloses = listaDesgloses.stream()
@@ -101,7 +106,11 @@ public class corteCajaBO implements ICorteCajaBO {
 
                 corteCajaDTO dto = CorteCajaMapper.entityToDTO(e, nombre);
 
-                if (e.getListaDesglose() != null) {
+                if (dto != null) {
+                    dto.setEvidenciaGrafica(e.getEvidenciaGrafica());
+                }
+
+                if (e.getListaDesglose() != null && dto != null) {
                     List<desgloseDTO> desglosesDTO = e.getListaDesglose().stream()
                             .map(DesgloseMapper::entityToDTO)
                             .collect(Collectors.toList());
@@ -113,5 +122,4 @@ public class corteCajaBO implements ICorteCajaBO {
         }
         return listaFinal;
     }
-
 }
