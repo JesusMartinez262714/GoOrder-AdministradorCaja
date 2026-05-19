@@ -13,7 +13,7 @@ import java.util.Locale;
 /**
  * Clase encargada de la generación de reportes y comprobantes en formato PDF.
  * Utiliza la librería iText para estructurar y diseñar el ticket físico del corte
- * de caja, incluyendo desgloses, estados de vigencia y detalles de arqueo.
+ * de caja, incluyendo desgloses, estados de vigencia, detalles de arqueo y evidencia gráfica.
  * * @author Jesus Manuel Martinez Cortez
  */
 public class JasperPDFAdapter {
@@ -227,6 +227,27 @@ public class JasperPDFAdapter {
             cMotivo.setBorderColor(COLOR_GRIS);
             tableMotivo.addCell(cMotivo);
             document.add(tableMotivo);
+
+            String base64Image = corte.getEvidenciaGrafica();
+            if (base64Image != null && !base64Image.trim().isEmpty()) {
+                try {
+                    byte[] imageBytes = java.util.Base64.getDecoder().decode(base64Image);
+                    Image img = Image.getInstance(imageBytes);
+                    img.setAlignment(Element.ALIGN_CENTER);
+
+                    img.scaleToFit(260f, 200f);
+
+                    document.add(new Paragraph("\n"));
+                    Paragraph lblEvidencia = new Paragraph("EVIDENCIA ADJUNTA:", fontGreenBold);
+                    lblEvidencia.setAlignment(Element.ALIGN_CENTER);
+                    document.add(lblEvidencia);
+                    document.add(new Paragraph("\n"));
+
+                    document.add(img);
+                } catch (Exception ex) {
+                    System.err.println("No se pudo renderizar la imagen de evidencia en el PDF: " + ex.getMessage());
+                }
+            }
 
             document.close();
 

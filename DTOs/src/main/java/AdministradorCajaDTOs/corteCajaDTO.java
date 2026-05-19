@@ -17,6 +17,7 @@ public class corteCajaDTO {
     private List<desgloseDTO> listaDesglose;
     private String observaciones;
     private String motivoCancelacion;
+    private String evidenciaGrafica;
     public corteCajaDTO() {}
 
     public int getIdCaja() { return idCaja; }
@@ -43,7 +44,13 @@ public class corteCajaDTO {
 
     public String getCajero() { return cajero; }
     public void setCajero(String s) { this.cajero = s; }
+    public String getEvidenciaGrafica() {
+        return evidenciaGrafica;
+    }
 
+    public void setEvidenciaGrafica(String evidenciaGrafica) {
+        this.evidenciaGrafica = evidenciaGrafica;
+    }
     public int getIdCajero() { return idCajero; }
     public void setIdCajero(int i) { this.idCajero = i; }
     public String getMotivoCancelacion() { return motivoCancelacion; }

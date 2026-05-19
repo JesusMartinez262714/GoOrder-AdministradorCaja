@@ -15,7 +15,6 @@ import java.util.Map;
  * Clase controlador que coordina el flujo de las pantallas visuales y conecta
  * la interfaz de usuario con la capa de negocio mediante el uso de una fachada.
  * * @author Jesus Manuel Martinez Cortez
- * @version 1.0
  */
 public class Control {
 
@@ -160,7 +159,7 @@ public class Control {
     }
 
     /**
-     * Actualiza los montos del panel de resumen al seleccionar un cajero diferente.
+     * Actualita los montos del panel de resumen al seleccionar un cajero diferente.
      * * @param seleccionado Objeto DTO del cajero seleccionado.
      */
     private void actualizarDatosResumen(cajeroDTO seleccionado) {
@@ -204,17 +203,12 @@ public class Control {
     }
 
     /**
-     * Oculta el formulario de captura y abre la ventana modal de conciliación final.
-     * * @param esp Monto esperado en el sistema.
-     * @param cont Monto contado físicamente.
-     * @param c Datos del cajero.
-     * @param des Lista con los desgloses ingresados.
-     * @param img Ruta de la imagen del comprobante.
-     * @param idCorteEditando ID del corte si es edición, o null si es nuevo.
+     * Oculta el formulario de captura y abre la ventana de conciliación final.
      */
-    public void mostrarConciliacionFinal(double esp, double cont, cajeroDTO c, List<desgloseDTO> des, String img, Integer idCorteEditando) {
-        if (pantallaFormulario != null) pantallaFormulario.setVisible(false);
-        new ConciliacionFinal(this, esp, cont, c, des, img, idCorteEditando).setVisible(true);
+    public void mostrarConciliacionFinal(double esperado, double contado, cajeroDTO empleado,
+                                         List<desgloseDTO> desgloses, String evidenciaBase64, int idCorteEditando) {
+        ConciliacionFinal ventana = new ConciliacionFinal(this, esperado, contado, empleado, desgloses, evidenciaBase64, idCorteEditando);
+        ventana.setVisible(true);
     }
 
     /**
@@ -231,11 +225,11 @@ public class Control {
      * @param cont Monto real contado.
      * @param idC ID del cajero.
      * @param des Lista de desgloses de pago.
-     * @param img Ruta del comprobante adjunto.
+     * @param evidenciaBase64 Imagen del comprobante codificada en texto Base64.
      * @param nota Observaciones de la conciliación.
      * @param idCorteEditando ID del corte bajo edición.
      */
-    public void guardarCorteFinal(double esp, double cont, int idC, List<desgloseDTO> des, String img, String nota, Integer idCorteEditando) {
+    public void guardarCorteFinal(double esp, double cont, int idC, List<desgloseDTO> des, String evidenciaBase64, String nota, Integer idCorteEditando) {
         double diff = fachadaNegocio.calcularDiferencia(esp, cont);
         corteCajaDTO dto = new corteCajaDTO();
 
@@ -260,6 +254,7 @@ public class Control {
         dto.setIdSupervisor(mapaAsAssignacionIds.getOrDefault(idC, 1));
         dto.setListaDesglose(des);
         dto.setObservaciones(nota);
+        dto.setEvidenciaGrafica(evidenciaBase64);
 
         if (fachadaNegocio.guardarNuevoCorte(dto, des)) {
             final String accion = (idCorteEditando != null) ? "actualizado" : "cerrado";
@@ -278,6 +273,13 @@ public class Control {
             if (idCorteEditando == null) {
                 cajerosConTurnoAbierto.removeIf(c -> c != null && c.getIdCajero() == idC);
                 mapaAsAssignacionIds.remove(idC);
+            } else {
+                List<cajeroDTO> listaActivos = fachadaNegocio.consultarCajerosConTurnoActivo();
+                this.cajerosConTurnoAbierto = (listaActivos != null) ? listaActivos : new ArrayList<>();
+            }
+
+            if (pantallaFormulario != null) {
+                pantallaFormulario.dispose();
             }
 
             mostrarHistorialCortes();
@@ -302,29 +304,15 @@ public class Control {
     }
 
     /**
-     * Ordena o remueve registros de la lista del historial basándose en un criterio.
-     * * @param criterio El tipo de filtro o clasificación a aplicar (Ascendente, Descendente, etc.).
-     */
-    public void filtrarHistorial(String criterio) {
-        if (criterio == null) return;
-        List<corteCajaDTO> lista = fachadaNegocio.consultarCortesRealizados(new Date(0), new Date());
-        if (lista == null) return;
-        switch (criterio) {
-            case "Ascendente" -> lista.sort((c1, c2) -> Double.compare(c1.getMontoReal(), c2.getMontoReal()));
-            case "Descendente" -> lista.sort((c2, c1) -> Double.compare(c2.getMontoReal(), c1.getMontoReal()));
-            case "Activos" -> lista.removeIf(c -> c != null && c.getEstado().equalsIgnoreCase("cancelado"));
-            case "Cancelados" -> lista.removeIf(c -> c != null && !c.getEstado().equalsIgnoreCase("cancelado"));
-        }
-        if (pantallaHistorial != null) pantallaHistorial.llenarTabla(lista);
-    }
-
-    /**
      * Elimina permanentemente un registro de corte de caja de la base de datos.
      * * @param idCorte ID único del corte a eliminar.
      */
     public void eliminarCorte(int idCorte) {
         if (fachadaNegocio.eliminarCorteFisico(idCorte)) {
             SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(null, "El corte ha sido eliminado exitosamente de la base de datos."));
+            // Forzamos recarga de los cajeros activos por si se eliminó una apertura abierta
+            List<cajeroDTO> listaActivos = fachadaNegocio.consultarCajerosConTurnoActivo();
+            this.cajerosConTurnoAbierto = (listaActivos != null) ? listaActivos : new ArrayList<>();
             mostrarHistorialCortes();
         } else {
             SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(null, "Error al intentar eliminar el corte.", "Error", JOptionPane.ERROR_MESSAGE));
@@ -502,7 +490,7 @@ public class Control {
      * Abre la ventana del catálogo para la administración y registro de supervisores.
      */
     public void mostrarGestionSupervisores() {
-        if (pantallaSupervisores == null) pantallaSupervisores = new GestionSupervisores(this);
+        if (pantallaSupervisores != null) pantallaSupervisores = new GestionSupervisores(this);
         ocultarTodas();
         filtrarSupervisoresLista("");
         pantallaSupervisores.setVisible(true);

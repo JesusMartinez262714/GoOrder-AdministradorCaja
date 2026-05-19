@@ -23,6 +23,7 @@ public class corteCaja {
     private String observaciones;
     private List<desgloseMontos> listaDesglose;
     private String motivoCancelacion;
+    private String evidenciaGrafica;
 
     /**
      * Constructor vacío por defecto para la entidad de corte de caja.
@@ -235,5 +236,21 @@ public class corteCaja {
      */
     public void setListaDesglose(List<desgloseMontos> listaDesglose) {
         this.listaDesglose = listaDesglose;
+    }
+
+    /**
+     * Devuelve la evidencia gráfica asociada al corte de caja en formato Base64.
+     * * @return Cadena de texto con la imagen codificada, o null si no hay evidencia.
+     */
+    public String getEvidenciaGrafica() {
+        return evidenciaGrafica;
+    }
+
+    /**
+     * Asigna la evidencia gráfica asociada al corte de caja, codificada en formato Base64.
+     * * @param evidenciaGrafica Cadena de texto con la imagen codificada.
+     */
+    public void setEvidenciaGrafica(String evidenciaGrafica) {
+        this.evidenciaGrafica = evidenciaGrafica;
     }
 }

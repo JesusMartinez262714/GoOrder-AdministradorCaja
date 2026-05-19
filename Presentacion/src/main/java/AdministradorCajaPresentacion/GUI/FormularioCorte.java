@@ -20,7 +20,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
  * Permite capturar los montos físicos por cada método de pago, adjuntar
  * la imagen del comprobante y calcular las diferencias lógicas antes de cerrar.
  * * @author Jesus Manuel Martinez Cortez
- * @version 1.0
  */
 public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoListener {
 
@@ -117,7 +116,7 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         pnlManualHeader.setBackground(COLOR_FONDO);
         pnlManualHeader.setMaximumSize(new Dimension(500, 35));
 
-        JLabel lblManual = new JLabel("Montos Manuales");
+        JLabel lblManual = new JLabel("Montos");
         lblManual.setForeground(COLOR_TEXTO);
         lblManual.setFont(new Font("Segoe UI", Font.BOLD, 15));
 
@@ -359,6 +358,21 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
     }
 
     /**
+     * Convierte un archivo de imagen físico a una cadena Base64 legible por el DTO.
+     */
+    private String convertirImagenABase64(java.io.File file) {
+        if (file == null) return null;
+        try (java.io.FileInputStream fis = new java.io.FileInputStream(file)) {
+            byte[] bytes = new byte[(int) file.length()];
+            fis.read(bytes);
+            return java.util.Base64.getEncoder().encodeToString(bytes);
+        } catch (Exception e) {
+            System.err.println("Error al codificar imagen: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Ejecuta las validaciones obligatorias del formulario (cajero seleccionado, campos completos
      * y métodos coherentes con las ventas) antes de avanzar a la ventana de conciliación final.
      */
@@ -374,12 +388,14 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
             return;
         }
 
+        String evidenciaBase64 = null;
         if (!rutaImagenSeleccionada.isEmpty()) {
             File archivoComprobante = new File(rutaImagenSeleccionada);
             if (!archivoComprobante.exists() || !archivoComprobante.isFile()) {
                 JOptionPane.showMessageDialog(this, "La ruta del comprobante adjunto ha dejado de ser válida. Por favor, reasigne el archivo.", "Error de Archivo", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+            evidenciaBase64 = convertirImagenABase64(archivoComprobante);
         }
 
         double totalContado = 0;
@@ -442,7 +458,9 @@ public class FormularioCorte extends JFrame implements FilaMontoPanel.FilaMontoL
         }
 
         double esperadoFinal = (this.idCorteEditando != -1) ? this.montoEsperadoEditando : control.obtenerMontoEsperado(emp.getIdCajero());
-        control.mostrarConciliacionFinal(esperadoFinal, totalContado, emp, desgloses, rutaImagenSeleccionada, idCorteEditando);
+
+        // Pasamos la evidencia en Base64 al método del controlador
+        control.mostrarConciliacionFinal(esperadoFinal, totalContado, emp, desgloses, evidenciaBase64, idCorteEditando);
     }
 
     /**
