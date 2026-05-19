@@ -228,13 +228,11 @@ public class JasperPDFAdapter {
             tableMotivo.addCell(cMotivo);
             document.add(tableMotivo);
 
+            document.close();
+
         } catch (Exception e) {
             System.err.println("Error al generar el ticket PDF: " + e.getMessage());
             throw e;
-        } finally {
-            if (document.isOpen()) {
-                document.close();
-            }
         }
     }
 }

@@ -549,7 +549,11 @@ public class Control {
      * Elimina de forma permanente un supervisor del catálogo por su ID único.
      * * @param id ID único del supervisor.
      */
-    public void eliminarSupervisor(int id) {
-        if (fachadaNegocio.eliminarSupervisor(id)) filtrarSupervisoresLista("");
+    public boolean eliminarSupervisor(int id) {
+        boolean exito = fachadaNegocio.eliminarSupervisor(id);
+        if (exito) {
+            filtrarSupervisoresLista("");
+        }
+        return exito;
     }
 }

@@ -303,8 +303,26 @@ public class GestionSupervisores extends JFrame {
 
             JButton btnEliminar = new BotonAccion("Eliminar", COLOR_SIDEBAR, COLOR_ROJO);
             btnEliminar.addActionListener(e -> {
-                int confirm = JOptionPane.showConfirmDialog(null, "¿Eliminar a " + s.getNombreCompleto() + "?");
-                if (confirm == JOptionPane.YES_OPTION) control.eliminarSupervisor(s.getIdSupervisor());
+                int confirm = JOptionPane.showConfirmDialog(this,
+                        "¿Estás seguro de que deseas eliminar a " + s.getNombreCompleto() + "?",
+                        "Confirmar Eliminación",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.WARNING_MESSAGE);
+
+                if (confirm == JOptionPane.YES_OPTION) {
+                    try {
+                        boolean eliminado = control.eliminarSupervisor(s.getIdSupervisor());
+
+                        if (eliminado) {
+                            JOptionPane.showMessageDialog(this, "Supervisor eliminado correctamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+
+                        } else {
+                            JOptionPane.showMessageDialog(this, "No se pudo eliminar. Verifica que no tenga procesos activos.", "Operación Rechazada", JOptionPane.WARNING_MESSAGE);
+                        }
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(this, "Error del sistema: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
             });
 
             pnlAcciones.add(btnEditar);

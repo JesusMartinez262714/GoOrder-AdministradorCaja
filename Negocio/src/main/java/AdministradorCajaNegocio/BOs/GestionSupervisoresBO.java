@@ -46,10 +46,7 @@ public class GestionSupervisoresBO implements IGestionSupervisoresBO {
         if (actuales != null) {
             for (supervisorDTO s : actuales) {
                 if (s != null && s.getNombreCompleto() != null && s.getNombreCompleto().equalsIgnoreCase(dto.getNombreCompleto())) {
-                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(null,
-                            "Error: Ya existe un supervisor registrado con el nombre '" + dto.getNombreCompleto() + "'.",
-                            "Registro Duplicado", JOptionPane.ERROR_MESSAGE));
-                    return false;
+                    throw new IllegalArgumentException("Ya existe un supervisor registrado con el nombre '" + dto.getNombreCompleto() + "'.");
                 }
             }
         }
