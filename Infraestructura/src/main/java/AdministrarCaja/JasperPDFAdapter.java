@@ -176,7 +176,7 @@ public class JasperPDFAdapter {
             cEspTxt.setPaddingLeft(10);
             tableArqueo.addCell(cEspTxt);
 
-            PdfPCell cEspMonto = new PdfPCell(new Phrase("$" + String.format("%,.2f", corte.getMontoEspecial() != 0 ? corte.getMontoEsperado() : corte.getMontoEsperado()), fontNormal));
+            PdfPCell cEspMonto = new PdfPCell(new Phrase("$" + String.format("%,.2f", corte.getMontoEsperado()), fontNormal));
             cEspMonto.setBorder(Rectangle.RIGHT);
             cEspMonto.setBorderColor(COLOR_GRIS);
             cEspMonto.setHorizontalAlignment(Element.ALIGN_RIGHT);
@@ -228,6 +228,9 @@ public class JasperPDFAdapter {
             tableMotivo.addCell(cMotivo);
             document.add(tableMotivo);
 
+        } catch (Exception e) {
+            System.err.println("Error al generar el ticket PDF: " + e.getMessage());
+            throw e;
         } finally {
             if (document.isOpen()) {
                 document.close();
